@@ -1,0 +1,7 @@
+#Ignora archivos de configuración del IDE
+.vscode/
+.idea/
+
+# Ignora archivos del sistema
+.DS_Store
+Thumbs.db
