@@ -1,81 +1,81 @@
+using Backend.DTOs.Requests;
+using Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Backend.Data;
-using Backend.Models;
 
-namespace Backend.Controllers
+namespace Backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductosController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class ProductosController : ControllerBase
+    private readonly IProductoService _productoService;
+    private readonly ILogger<ProductosController> _logger;
+
+    public ProductosController(IProductoService productoService, ILogger<ProductosController> logger)
     {
-        private readonly AppDbContext _context;
+        _productoService = productoService;
+        _logger = logger;
+    }
 
-        public ProductosController(AppDbContext context)
+    /// <summary>
+    /// Obtener todos los productos (Café, Cacao, Maíz, Achiote)
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        try
         {
-            _context = context;
+            var productos = await _productoService.GetAllAsync();
+            return Ok(productos);
         }
-
-        // GET: api/Productos
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Producto>>> GetProductos()
+        catch (Exception ex)
         {
-            return await _context.Productos.ToListAsync();
+            _logger.LogError(ex, "Error al obtener productos");
+            return StatusCode(500, new { message = "Error al obtener los productos" });
         }
+    }
 
-        // GET: api/Productos/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Producto>> GetProducto(int id)
+    /// <summary>
+    /// Obtener producto por ID
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        try
         {
-            var producto = await _context.Productos.FindAsync(id);
-
+            var producto = await _productoService.GetByIdAsync(id);
             if (producto == null)
-            {
-                return NotFound();
-            }
+                return NotFound(new { message = "Producto no encontrado" });
 
-            return producto;
+            return Ok(producto);
         }
-
-        // POST: api/Productos
-        [HttpPost]
-        public async Task<ActionResult<Producto>> PostProducto(Producto producto)
+        catch (Exception ex)
         {
-            _context.Productos.Add(producto);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
+            _logger.LogError(ex, "Error al obtener producto {ProductoId}", id);
+            return StatusCode(500, new { message = "Error al obtener el producto" });
         }
+    }
 
-        // PUT: api/Productos/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutProducto(int id, Producto producto)
+    /// <summary>
+    /// Actualizar precio sugerido del producto
+    /// </summary>
+    [HttpPut("{id}/precio")]
+    public async Task<IActionResult> UpdatePrecio(int id, [FromBody] ActualizarPrecioProductoRequest request)
+    {
+        try
         {
-            if (id != producto.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(producto).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            var producto = await _productoService.UpdatePrecioAsync(id, request);
+            return Ok(producto);
         }
-
-        // DELETE: api/Productos/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProducto(int id)
+        catch (InvalidOperationException ex)
         {
-            var producto = await _context.Productos.FindAsync(id);
-            if (producto == null)
-            {
-                return NotFound();
-            }
-
-            _context.Productos.Remove(producto);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            _logger.LogWarning(ex, "Error al actualizar precio del producto {ProductoId}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al actualizar precio del producto {ProductoId}", id);
+            return StatusCode(500, new { message = "Error al actualizar el precio del producto" });
         }
     }
 }

@@ -1,0 +1,128 @@
+using Backend.Data;
+using Backend.Models;
+using Backend.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
+namespace Backend.Repositories.Implementations;
+
+public class ClienteRepository : IClienteRepository
+{
+    private readonly AppDbContext _context;
+
+    public ClienteRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    // Clientes Proveedores
+    public async Task<ClienteProveedor?> GetProveedorByIdAsync(int id)
+    {
+        return await _context.ClientesProveedores
+            .Include(c => c.Zona)
+            .FirstOrDefaultAsync(c => c.Id == id);
+    }
+
+    public async Task<ClienteProveedor?> GetProveedorByDniAsync(string dni)
+    {
+        return await _context.ClientesProveedores
+            .Include(c => c.Zona)
+            .FirstOrDefaultAsync(c => c.DNI == dni);
+    }
+
+    public async Task<List<ClienteProveedor>> GetProveedoresAsync(int skip = 0, int take = 50, string? searchTerm = null, int? zonaId = null)
+    {
+        var query = _context.ClientesProveedores
+            .Include(c => c.Zona)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(c =>
+                c.DNI.Contains(searchTerm) ||
+                c.NombreCompleto.Contains(searchTerm));
+        }
+
+        if (zonaId.HasValue)
+        {
+            query = query.Where(c => c.ZonaId == zonaId.Value);
+        }
+
+        return await query
+            .OrderByDescending(c => c.FechaCreacion)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetTotalProveedoresCountAsync(string? searchTerm = null, int? zonaId = null)
+    {
+        var query = _context.ClientesProveedores.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(c =>
+                c.DNI.Contains(searchTerm) ||
+                c.NombreCompleto.Contains(searchTerm));
+        }
+
+        if (zonaId.HasValue)
+        {
+            query = query.Where(c => c.ZonaId == zonaId.Value);
+        }
+
+        return await query.CountAsync();
+    }
+
+    public async Task<ClienteProveedor> AddProveedorAsync(ClienteProveedor cliente)
+    {
+        _context.ClientesProveedores.Add(cliente);
+        await _context.SaveChangesAsync();
+        return cliente;
+    }
+
+    public async Task UpdateProveedorAsync(ClienteProveedor cliente)
+    {
+        cliente.FechaModificacion = DateTime.Now;
+        _context.ClientesProveedores.Update(cliente);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> ExisteDniAsync(string dni, int? excludeId = null)
+    {
+        var query = _context.ClientesProveedores.Where(c => c.DNI == dni);
+
+        if (excludeId.HasValue)
+        {
+            query = query.Where(c => c.Id != excludeId.Value);
+        }
+
+        return await query.AnyAsync();
+    }
+
+    // Clientes Compradores
+    public async Task<ClienteComprador?> GetCompradorByIdAsync(int id)
+    {
+        return await _context.ClientesCompradores.FindAsync(id);
+    }
+
+    public async Task<List<ClienteComprador>> GetCompradoresAsync()
+    {
+        return await _context.ClientesCompradores
+            .OrderBy(c => c.Nombre)
+            .ToListAsync();
+    }
+
+    public async Task<ClienteComprador> AddCompradorAsync(ClienteComprador cliente)
+    {
+        _context.ClientesCompradores.Add(cliente);
+        await _context.SaveChangesAsync();
+        return cliente;
+    }
+
+    public async Task UpdateCompradorAsync(ClienteComprador cliente)
+    {
+        cliente.FechaModificacion = DateTime.Now;
+        _context.ClientesCompradores.Update(cliente);
+        await _context.SaveChangesAsync();
+    }
+}

@@ -1,0 +1,53 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class VentasService {
+  private apiUrl = `${environment.apiUrl}/ventas`;
+
+  constructor(private http: HttpClient) {}
+
+  registrarVenta(venta: any): Observable<any> {
+    return this.http.post(this.apiUrl, venta);
+  }
+
+  editarVenta(id: number, venta: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, venta);
+  }
+
+  obtenerPorId(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/${id}`);
+  }
+
+  obtenerTodas(
+    page: number = 1,
+    pageSize: number = 50,
+    filtros?: {
+      clienteId?: number;
+      productoId?: number;
+      fechaInicio?: string;
+      fechaFin?: string;
+    }
+  ): Observable<any> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
+
+    if (filtros) {
+      if (filtros.clienteId) params = params.set('clienteId', filtros.clienteId.toString());
+      if (filtros.productoId) params = params.set('productoId', filtros.productoId.toString());
+      if (filtros.fechaInicio) params = params.set('fechaInicio', filtros.fechaInicio);
+      if (filtros.fechaFin) params = params.set('fechaFin', filtros.fechaFin);
+    }
+
+    return this.http.get(this.apiUrl, { params });
+  }
+
+  obtenerPorCaja(cajaId: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/caja/${cajaId}`);
+  }
+}

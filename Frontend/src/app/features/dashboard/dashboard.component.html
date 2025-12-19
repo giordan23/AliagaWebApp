@@ -1,0 +1,123 @@
+<div class="dashboard-container">
+  <h1>Dashboard</h1>
+
+  <!-- Estado de Caja -->
+  <div class="card" *ngIf="estadoCaja">
+    <h2>Estado de Caja</h2>
+    <div class="estado-caja">
+      <div class="estado-badge" [ngClass]="estadoCaja.cajaAbierta ? 'abierta' : 'cerrada'">
+        {{ estadoCaja.cajaAbierta ? 'CAJA ABIERTA' : 'CAJA CERRADA' }}
+      </div>
+      <p class="mensaje">{{ estadoCaja.mensaje }}</p>
+      <div class="saldo-info" *ngIf="estadoCaja.cajaAbierta">
+        <div class="saldo-item">
+          <span>Monto Inicial:</span>
+          <strong>{{ estadoCaja.montoInicial | formatoMoneda }}</strong>
+        </div>
+        <div class="saldo-item">
+          <span>Saldo Esperado:</span>
+          <strong>{{ estadoCaja.montoEsperado | formatoMoneda }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen del Día -->
+  <div class="card" *ngIf="resumenDia && resumenDia.cajaAbierta">
+    <h2>Resumen del Día - {{ resumenDia.fecha | formatoFecha }}</h2>
+    <div class="resumen-grid">
+      <div class="resumen-item">
+        <div class="resumen-label">Compras</div>
+        <div class="resumen-value">{{ resumenDia.totalCompras }}</div>
+        <div class="resumen-monto">{{ resumenDia.montoTotalCompras | formatoMoneda }}</div>
+        <div class="resumen-detalle">{{ resumenDia.pesoTotalComprasKg }} kg</div>
+      </div>
+
+      <div class="resumen-item">
+        <div class="resumen-label">Ventas</div>
+        <div class="resumen-value">{{ resumenDia.totalVentas }}</div>
+        <div class="resumen-monto">{{ resumenDia.montoTotalVentas | formatoMoneda }}</div>
+      </div>
+
+      <div class="resumen-item">
+        <div class="resumen-label">Préstamos</div>
+        <div class="resumen-value">{{ resumenDia.totalPrestamos }}</div>
+        <div class="resumen-monto">{{ resumenDia.montoTotalPrestamos | formatoMoneda }}</div>
+      </div>
+
+      <div class="resumen-item">
+        <div class="resumen-label">Abonos</div>
+        <div class="resumen-value">{{ resumenDia.totalAbonos }}</div>
+        <div class="resumen-monto">{{ resumenDia.montoTotalAbonos | formatoMoneda }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <div class="card" *ngIf="alertas.length > 0">
+    <h2>Alertas</h2>
+    <div class="alertas-container">
+      <div *ngFor="let alerta of alertas" [ngClass]="getPrioridadClass(alerta.prioridad)" class="alerta">
+        <div class="alerta-tipo">{{ alerta.tipo | uppercase }}</div>
+        <div class="alerta-mensaje">{{ alerta.mensaje }}</div>
+        <div class="alerta-detalle" *ngIf="alerta.detalle">{{ alerta.detalle }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Deudores -->
+  <div class="card" *ngIf="topDeudores.length > 0">
+    <h2>Top 5 Deudores</h2>
+    <table class="deudores-table">
+      <thead>
+        <tr>
+          <th>DNI</th>
+          <th>Nombre</th>
+          <th>Zona</th>
+          <th>Saldo</th>
+          <th>Última Compra</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let deudor of topDeudores">
+          <td>{{ deudor.dni }}</td>
+          <td>{{ deudor.nombreCompleto }}</td>
+          <td>{{ deudor.zona }}</td>
+          <td><strong>{{ deudor.saldoPrestamo | formatoMoneda }}</strong></td>
+          <td>{{ deudor.ultimaCompra | formatoFecha }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Estadísticas Generales -->
+  <div class="card" *ngIf="estadisticas">
+    <h2>Estadísticas Generales</h2>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-label">Proveedores Totales</div>
+        <div class="stat-value">{{ estadisticas.totalProveedores }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Proveedores Activos (30 días)</div>
+        <div class="stat-value">{{ estadisticas.proveedoresActivos }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Compradores</div>
+        <div class="stat-value">{{ estadisticas.totalCompradores }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Zonas</div>
+        <div class="stat-value">{{ estadisticas.totalZonas }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Préstamos Vigentes</div>
+        <div class="stat-value">{{ estadisticas.totalPrestamosVigentes | formatoMoneda }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Clientes con Préstamos</div>
+        <div class="stat-value">{{ estadisticas.clientesConPrestamos }}</div>
+      </div>
+    </div>
+  </div>
+</div>
