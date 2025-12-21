@@ -18,7 +18,8 @@ public class CompraRepository : ICompraRepository
     {
         return await _context.Compras
             .Include(c => c.ClienteProveedor)
-            .Include(c => c.Producto)
+            .Include(c => c.Detalles)
+                .ThenInclude(d => d.Producto)
             .Include(c => c.Caja)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
@@ -27,7 +28,8 @@ public class CompraRepository : ICompraRepository
     {
         return await _context.Compras
             .Include(c => c.ClienteProveedor)
-            .Include(c => c.Producto)
+            .Include(c => c.Detalles)
+                .ThenInclude(d => d.Producto)
             .FirstOrDefaultAsync(c => c.NumeroVoucher == numeroVoucher);
     }
 
@@ -41,7 +43,8 @@ public class CompraRepository : ICompraRepository
     {
         var query = _context.Compras
             .Include(c => c.ClienteProveedor)
-            .Include(c => c.Producto)
+            .Include(c => c.Detalles)
+                .ThenInclude(d => d.Producto)
             .AsQueryable();
 
         if (clienteId.HasValue)
@@ -51,7 +54,7 @@ public class CompraRepository : ICompraRepository
 
         if (productoId.HasValue)
         {
-            query = query.Where(c => c.ProductoId == productoId.Value);
+            query = query.Where(c => c.Detalles.Any(d => d.ProductoId == productoId.Value));
         }
 
         if (fechaInicio.HasValue)
@@ -86,7 +89,7 @@ public class CompraRepository : ICompraRepository
 
         if (productoId.HasValue)
         {
-            query = query.Where(c => c.ProductoId == productoId.Value);
+            query = query.Where(c => c.Detalles.Any(d => d.ProductoId == productoId.Value));
         }
 
         if (fechaInicio.HasValue)
@@ -106,7 +109,8 @@ public class CompraRepository : ICompraRepository
     {
         return await _context.Compras
             .Include(c => c.ClienteProveedor)
-            .Include(c => c.Producto)
+            .Include(c => c.Detalles)
+                .ThenInclude(d => d.Producto)
             .Where(c => c.CajaId == cajaId)
             .OrderByDescending(c => c.FechaCompra)
             .ToListAsync();

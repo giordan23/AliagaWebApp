@@ -23,6 +23,5 @@ public class Producto
     public DateTime FechaModificacion { get; set; } = DateTime.Now;
 
     // Navigation properties
-    public ICollection<Compra> Compras { get; set; } = new List<Compra>();
     public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
 }

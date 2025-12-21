@@ -100,35 +100,41 @@ public class VoucherService : IVoucherService
         }
         sb.AppendLine();
 
-        // Información del producto
-        sb.AppendLine("PRODUCTO");
-        sb.AppendLine(Linea('-'));
-        sb.AppendLine($"Producto: {AcortarTexto(compra.Producto?.Nombre ?? "N/A", ANCHO_VOUCHER - 10)}");
-        sb.AppendLine($"Nivel Secado: {AcortarTexto(compra.NivelSecado, ANCHO_VOUCHER - 14)}");
-        sb.AppendLine($"Calidad: {compra.Calidad}");
-        sb.AppendLine($"Tipo Pesado: {compra.TipoPesado}");
-        sb.AppendLine();
+        // Lista de productos
+        sb.AppendLine($"PRODUCTOS ({compra.Detalles.Count})");
+        sb.AppendLine(Linea('='));
 
-        // Pesos y precios
-        sb.AppendLine("PESOS Y PRECIOS");
-        sb.AppendLine(Linea('-'));
-
-        if (compra.TipoPesado == Enums.TipoPesado.Kg)
+        foreach (var detalle in compra.Detalles)
         {
-            sb.AppendLine(FormatearLinea("Peso Bruto:", $"{compra.PesoBruto:N1} kg"));
-            sb.AppendLine(FormatearLinea("Descuento:", $"{compra.DescuentoKg:N1} kg"));
+            sb.AppendLine();
+            sb.AppendLine($">>> {AcortarTexto(detalle.Producto?.Nombre ?? "N/A", ANCHO_VOUCHER - 4)}");
             sb.AppendLine(Linea('-'));
-            sb.AppendLine(FormatearLinea("Peso Neto:", $"{compra.PesoNeto:N1} kg"));
-        }
-        else
-        {
-            sb.AppendLine(FormatearLinea("Valdeos:", $"{compra.PesoBruto:N0}"));
-            sb.AppendLine(FormatearLinea("Peso Neto:", $"{compra.PesoNeto:N1} kg"));
+            sb.AppendLine($"Nivel Secado: {AcortarTexto(detalle.NivelSecado, ANCHO_VOUCHER - 14)}");
+            sb.AppendLine($"Calidad: {detalle.Calidad}");
+            sb.AppendLine($"Tipo Pesado: {detalle.TipoPesado}");
+
+            if (detalle.TipoPesado == Enums.TipoPesado.Kg)
+            {
+                sb.AppendLine(FormatearLinea("Peso Bruto:", $"{detalle.PesoBruto:N1} kg"));
+                sb.AppendLine(FormatearLinea("Descuento:", $"{detalle.DescuentoKg:N1} kg"));
+                sb.AppendLine(FormatearLinea("Peso Neto:", $"{detalle.PesoNeto:N1} kg"));
+            }
+            else
+            {
+                sb.AppendLine(FormatearLinea("Valdeos:", $"{detalle.PesoBruto:N0}"));
+                sb.AppendLine(FormatearLinea("Peso Neto:", $"{detalle.PesoNeto:N1} kg"));
+            }
+
+            sb.AppendLine(FormatearLinea("Precio/Kg:", $"S/ {detalle.PrecioPorKg:N2}"));
+            sb.AppendLine(FormatearLinea("Subtotal:", $"S/ {detalle.Subtotal:N2}", true));
         }
 
-        sb.AppendLine(FormatearLinea("Precio/Kg:", $"S/ {compra.PrecioPorKg:N2}"));
+        // Totales generales
+        sb.AppendLine();
+        sb.AppendLine(Linea('='));
+        sb.AppendLine(FormatearLinea("PESO TOTAL:", $"{compra.PesoTotal:N1} kg", true));
         sb.AppendLine(Centrar("=========================="));
-        sb.AppendLine(FormatearLinea("TOTAL:", $"S/ {compra.MontoTotal:N2}", true));
+        sb.AppendLine(FormatearLinea("TOTAL A PAGAR:", $"S/ {compra.MontoTotal:N2}", true));
         sb.AppendLine(Centrar("=========================="));
         sb.AppendLine();
 

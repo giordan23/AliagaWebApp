@@ -1,0 +1,222 @@
+.productos-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.header-info mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+}
+
+.loading-container p {
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.productos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.producto-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.producto-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.producto-card mat-card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px;
+  margin: -16px -16px 16px -16px;
+  border-radius: 4px 4px 0 0;
+}
+
+.producto-card mat-card-title {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.producto-card mat-card-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  margin: 4px 0 0 0;
+}
+
+.precio-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.precio-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.precio-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.precio-display strong {
+  font-size: 24px;
+  color: #27ae60;
+}
+
+.precio-edit form {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.precio-input {
+  flex: 1;
+  margin: 0;
+}
+
+.precio-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.caracteristica-section {
+  margin-bottom: 16px;
+}
+
+.caracteristica-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+mat-chip-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+mat-chip {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chip-secado {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.chip-calidad {
+  background-color: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+}
+
+.chip-valdeo-si {
+  background-color: #c8e6c9 !important;
+  color: #2e7d32 !important;
+}
+
+.chip-valdeo-no {
+  background-color: #ffcdd2 !important;
+  color: #c62828 !important;
+}
+
+.fecha-modificacion {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.fecha-modificacion small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #95a5a6;
+  font-size: 12px;
+}
+
+.fecha-modificacion mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: #7f8c8d;
+}
+
+.no-data mat-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: #bdc3c7;
+  margin-bottom: 16px;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .productos-container {
+    padding: 16px;
+  }
+
+  .productos-grid {
+    grid-template-columns: 1fr;
+  }
+}

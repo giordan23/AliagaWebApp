@@ -303,8 +303,8 @@ public class CajaService : ICajaService
             .Where(m => m.TipoMovimiento == TipoMovimiento.GastoOperativo)
             .Sum(m => m.Monto);
 
-        var totalIngresos = totalCompras + totalAbonos + totalInyecciones;
-        var totalEgresos = totalVentas + totalPrestamos + totalRetiros + totalGastos;
+        var totalIngresos = totalAbonos + totalInyecciones;
+        var totalEgresos = totalCompras + totalPrestamos + totalRetiros + totalGastos;
 
         return (totalIngresos, totalEgresos, totalCompras, totalVentas, totalPrestamos,
             totalAbonos, totalInyecciones, totalRetiros, totalGastos, compras.Count, ventas.Count);

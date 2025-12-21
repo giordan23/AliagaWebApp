@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Producto> Productos { get; set; }
     public DbSet<Caja> Cajas { get; set; }
     public DbSet<Compra> Compras { get; set; }
+    public DbSet<DetalleCompra> DetallesCompra { get; set; }
     public DbSet<Venta> Ventas { get; set; }
     public DbSet<Prestamo> Prestamos { get; set; }
     public DbSet<MovimientoCaja> MovimientosCaja { get; set; }
@@ -55,15 +56,23 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Compra>()
-            .HasOne(c => c.Producto)
-            .WithMany(p => p.Compras)
-            .HasForeignKey(c => c.ProductoId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Compra>()
             .HasOne(c => c.Caja)
             .WithMany(ca => ca.Compras)
             .HasForeignKey(c => c.CajaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Relación Compra -> DetalleCompra
+        modelBuilder.Entity<DetalleCompra>()
+            .HasOne(d => d.Compra)
+            .WithMany(c => c.Detalles)
+            .HasForeignKey(d => d.CompraId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relación DetalleCompra -> Producto
+        modelBuilder.Entity<DetalleCompra>()
+            .HasOne(d => d.Producto)
+            .WithMany()
+            .HasForeignKey(d => d.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Venta>()
@@ -124,23 +133,31 @@ public class AppDbContext : DbContext
             .HasPrecision(18, 2);
 
         modelBuilder.Entity<Compra>()
-            .Property(c => c.PesoBruto)
+            .Property(c => c.PesoTotal)
             .HasPrecision(18, 1);
-
-        modelBuilder.Entity<Compra>()
-            .Property(c => c.DescuentoKg)
-            .HasPrecision(18, 1);
-
-        modelBuilder.Entity<Compra>()
-            .Property(c => c.PesoNeto)
-            .HasPrecision(18, 1);
-
-        modelBuilder.Entity<Compra>()
-            .Property(c => c.PrecioPorKg)
-            .HasPrecision(18, 2);
 
         modelBuilder.Entity<Compra>()
             .Property(c => c.MontoTotal)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<DetalleCompra>()
+            .Property(d => d.PesoBruto)
+            .HasPrecision(18, 1);
+
+        modelBuilder.Entity<DetalleCompra>()
+            .Property(d => d.DescuentoKg)
+            .HasPrecision(18, 1);
+
+        modelBuilder.Entity<DetalleCompra>()
+            .Property(d => d.PesoNeto)
+            .HasPrecision(18, 1);
+
+        modelBuilder.Entity<DetalleCompra>()
+            .Property(d => d.PrecioPorKg)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<DetalleCompra>()
+            .Property(d => d.Subtotal)
             .HasPrecision(18, 2);
 
         modelBuilder.Entity<Venta>()

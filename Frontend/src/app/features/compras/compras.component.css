@@ -1,0 +1,228 @@
+.compras-container {
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Header */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Actions Bar */
+.actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.actions-bar button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-chip {
+  background-color: #fef5e7 !important;
+  color: #975a16 !important;
+  font-size: 13px;
+}
+
+.warning-chip mat-icon {
+  color: #ed8936;
+}
+
+/* Filters Card */
+.filters-card {
+  margin-bottom: 24px;
+  border-radius: 12px;
+}
+
+.filters-form {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filters-form mat-form-field {
+  min-width: 200px;
+}
+
+.filters-form button {
+  height: 40px;
+}
+
+/* Table Card */
+mat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+mat-card-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.compras-table {
+  width: 100%;
+  background-color: white;
+}
+
+.compras-table th {
+  background-color: #f7fafc;
+  font-weight: 600;
+  color: #2d3748;
+  padding: 16px 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.compras-table td {
+  padding: 14px 12px;
+  color: #4a5568;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.compras-table tr:hover {
+  background-color: #f7fafc;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.voucher-number {
+  font-weight: 600;
+  color: #2b6cb0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.caracteristica {
+  font-size: 13px;
+  color: #718096;
+}
+
+.productos-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.productos-count {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.productos-list {
+  font-size: 12px;
+  color: #718096;
+  line-height: 1.4;
+}
+
+.peso-total {
+  font-weight: 600;
+  color: #2f855a;
+  font-size: 14px;
+}
+
+.monto-total {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 15px;
+}
+
+.edit-icon {
+  color: #ed8936;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+}
+
+.ajuste-icon {
+  color: #9f7aea;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.empty-state mat-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: #cbd5e0;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  color: #a0aec0;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .compras-container {
+    padding: 16px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .filters-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters-form mat-form-field,
+  .filters-form button {
+    width: 100%;
+  }
+}

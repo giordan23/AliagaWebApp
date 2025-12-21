@@ -1,0 +1,102 @@
+<div class="productos-container">
+  <app-alert-banner
+    *ngIf="showAlert"
+    [type]="alertType"
+    [message]="alertMessage">
+  </app-alert-banner>
+
+  <div class="header">
+    <h1>Gestión de Productos</h1>
+    <div class="header-info">
+      <mat-icon>inventory_2</mat-icon>
+      <span>Productos Fijos del Sistema</span>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Cargando productos...</p>
+  </div>
+
+  <div *ngIf="!loading" class="productos-grid">
+    <mat-card *ngFor="let producto of productos" class="producto-card">
+      <mat-card-header>
+        <mat-card-title>{{ producto.nombre }}</mat-card-title>
+        <mat-card-subtitle>ID: {{ producto.id }}</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Precio Sugerido -->
+        <div class="precio-section">
+          <label>Precio Sugerido por Kg:</label>
+          <div *ngIf="editandoId !== producto.id" class="precio-display">
+            <strong>{{ producto.precioSugeridoPorKg | formatoMoneda }}</strong>
+            <button mat-icon-button color="primary" (click)="iniciarEdicionPrecio(producto)">
+              <mat-icon>edit</mat-icon>
+            </button>
+          </div>
+          <div *ngIf="editandoId === producto.id" class="precio-edit">
+            <form [formGroup]="formPrecio" (ngSubmit)="guardarPrecio(producto)">
+              <mat-form-field appearance="outline" class="precio-input">
+                <mat-label>Nuevo Precio</mat-label>
+                <input matInput type="number" formControlName="precio" step="0.01">
+                <span matPrefix>S/&nbsp;</span>
+                <mat-error>{{ getErrorMessage('precio') }}</mat-error>
+              </mat-form-field>
+              <div class="precio-actions">
+                <button mat-icon-button type="submit" color="primary" [disabled]="formPrecio.invalid">
+                  <mat-icon>check</mat-icon>
+                </button>
+                <button mat-icon-button type="button" (click)="cancelarEdicion()">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Niveles de Secado -->
+        <div class="caracteristica-section">
+          <label>Niveles de Secado:</label>
+          <mat-chip-set>
+            <mat-chip *ngFor="let nivel of producto.caracteristicas.nivelesSecado" class="chip-secado">
+              {{ nivel }}
+            </mat-chip>
+          </mat-chip-set>
+        </div>
+
+        <!-- Calidades -->
+        <div class="caracteristica-section">
+          <label>Calidades:</label>
+          <mat-chip-set>
+            <mat-chip *ngFor="let calidad of producto.caracteristicas.calidades" class="chip-calidad">
+              {{ calidad }}
+            </mat-chip>
+          </mat-chip-set>
+        </div>
+
+        <!-- Permite Valdeo -->
+        <div class="caracteristica-section">
+          <label>Permite Valdeo:</label>
+          <mat-chip [class.chip-valdeo-si]="producto.caracteristicas.permiteValdeo"
+                    [class.chip-valdeo-no]="!producto.caracteristicas.permiteValdeo">
+            {{ producto.caracteristicas.permiteValdeo ? 'SÍ' : 'NO' }}
+          </mat-chip>
+        </div>
+
+        <!-- Última Modificación -->
+        <div class="fecha-modificacion">
+          <small>
+            <mat-icon>update</mat-icon>
+            Última actualización: {{ producto.fechaModificacion | formatoFecha:true }}
+          </small>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div *ngIf="!loading && productos.length === 0" class="no-data">
+    <mat-icon>inventory</mat-icon>
+    <p>No hay productos en el sistema</p>
+  </div>
+</div>

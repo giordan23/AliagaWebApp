@@ -42,67 +42,135 @@ public class ComprasService : IComprasService
 
         try
         {
-            // 1. Validar que existe caja abierta del día actual
+            // 1. Validar que hay al menos un detalle
+            if (request.Detalles == null || !request.Detalles.Any())
+            {
+                throw new InvalidOperationException("Debe incluir al menos un producto en la compra.");
+            }
+
+            // 2. Validar que existe caja abierta del día actual
             var cajaActual = await _cajaRepository.GetCajaAbiertaAsync();
             if (cajaActual == null)
             {
                 throw new InvalidOperationException("No existe una caja abierta. Por favor, abra la caja antes de registrar compras.");
             }
 
-            // 2. Validar que el cliente existe
-            var cliente = await _clienteRepository.GetProveedorByIdAsync(request.ClienteProveedorId);
-            if (cliente == null)
+            // 3. Obtener o crear el cliente proveedor
+            int clienteProveedorId;
+
+            if (request.ClienteProveedorId.HasValue && request.ClienteProveedorId.Value > 0)
             {
-                throw new InvalidOperationException("El cliente proveedor no existe.");
+                // Usar cliente existente
+                var clienteExistente = await _clienteRepository.GetProveedorByIdAsync(request.ClienteProveedorId.Value);
+                if (clienteExistente == null)
+                {
+                    throw new InvalidOperationException("El cliente proveedor no existe.");
+                }
+                clienteProveedorId = clienteExistente.Id;
+            }
+            else if (request.NuevoCliente != null)
+            {
+                // Verificar si ya existe un cliente con ese DNI
+                var clientePorDni = await _clienteRepository.GetProveedorByDniAsync(request.NuevoCliente.Dni);
+
+                if (clientePorDni != null)
+                {
+                    // Cliente ya existe, usar su ID
+                    clienteProveedorId = clientePorDni.Id;
+                    _logger.LogInformation("Cliente con DNI {DNI} ya existe, usando ID {ClienteId}", request.NuevoCliente.Dni, clienteProveedorId);
+                }
+                else
+                {
+                    // Crear nuevo cliente
+                    var nuevoCliente = new ClienteProveedor
+                    {
+                        DNI = request.NuevoCliente.Dni,
+                        NombreCompleto = request.NuevoCliente.NombreCompleto,
+                        FechaCreacion = DateTime.Now,
+                        FechaModificacion = DateTime.Now,
+                        SaldoPrestamo = 0,
+                        EsAnonimo = false
+                    };
+
+                    _context.ClientesProveedores.Add(nuevoCliente);
+                    await _context.SaveChangesAsync();
+                    clienteProveedorId = nuevoCliente.Id;
+                    _logger.LogInformation("Nuevo cliente creado con DNI {DNI}, ID {ClienteId}", request.NuevoCliente.Dni, clienteProveedorId);
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("Debe proporcionar un ClienteProveedorId o datos de NuevoCliente.");
             }
 
-            // 3. Obtener configuración para generar número de voucher
+            // 4. Obtener configuración para generar número de voucher
             var config = await _context.ConfiguracionNegocio.FirstOrDefaultAsync();
             if (config == null)
             {
                 throw new InvalidOperationException("No se encontró la configuración del negocio.");
             }
 
-            // 4. Calcular peso neto y monto total
-            var pesoNeto = CalculosHelper.CalcularPesoNeto(request.PesoBruto, request.DescuentoKg);
-            var montoTotal = CalculosHelper.CalcularMontoTotal(pesoNeto, request.PrecioPorKg);
-
-            // 5. Crear la compra
+            // 5. Crear la compra base
             var compra = new Compra
             {
                 NumeroVoucher = config.ContadorVoucher.ToString().PadLeft(8, '0'),
-                ClienteProveedorId = request.ClienteProveedorId,
-                ProductoId = request.ProductoId,
+                ClienteProveedorId = clienteProveedorId,
                 CajaId = cajaActual.Id,
-                NivelSecado = request.NivelSecado,
-                Calidad = request.Calidad,
-                TipoPesado = request.TipoPesado,
-                PesoBruto = request.PesoBruto,
-                DescuentoKg = request.DescuentoKg,
-                PesoNeto = pesoNeto,
-                PrecioPorKg = request.PrecioPorKg,
-                MontoTotal = montoTotal,
+                PesoTotal = 0,
+                MontoTotal = 0,
                 FechaCompra = DateTime.Now,
                 Editada = false,
-                EsAjustePosterior = false
+                EsAjustePosterior = false,
+                Detalles = new List<DetalleCompra>()
             };
 
-            // 6. Guardar la compra
+            // 6. Procesar cada detalle
+            foreach (var detalleReq in request.Detalles)
+            {
+                var producto = await _context.Productos.FindAsync(detalleReq.ProductoId);
+                if (producto == null)
+                {
+                    throw new InvalidOperationException($"Producto {detalleReq.ProductoId} no encontrado.");
+                }
+
+                var pesoNeto = CalculosHelper.CalcularPesoNeto(detalleReq.PesoBruto, detalleReq.DescuentoKg);
+                var subtotal = CalculosHelper.CalcularMontoTotal(pesoNeto, detalleReq.PrecioPorKg);
+
+                var detalle = new DetalleCompra
+                {
+                    ProductoId = detalleReq.ProductoId,
+                    NivelSecado = detalleReq.NivelSecado,
+                    Calidad = detalleReq.Calidad,
+                    TipoPesado = detalleReq.TipoPesado,
+                    PesoBruto = detalleReq.PesoBruto,
+                    DescuentoKg = detalleReq.DescuentoKg,
+                    PesoNeto = pesoNeto,
+                    PrecioPorKg = detalleReq.PrecioPorKg,
+                    Subtotal = subtotal,
+                    FechaCreacion = DateTime.Now
+                };
+
+                compra.Detalles.Add(detalle);
+                compra.PesoTotal += pesoNeto;
+                compra.MontoTotal += subtotal;
+            }
+
+            // 7. Guardar la compra con detalles
             var compraNueva = await _compraRepository.AddAsync(compra);
 
-            // 7. Incrementar contador de voucher
+            // 8. Incrementar contador de voucher
             config.ContadorVoucher++;
             _context.ConfiguracionNegocio.Update(config);
             await _context.SaveChangesAsync();
 
-            // 8. Crear movimiento de caja (egreso)
+            // 9. Crear movimiento de caja (UN SOLO egreso por el total)
             var movimiento = new MovimientoCaja
             {
                 CajaId = cajaActual.Id,
                 TipoMovimiento = TipoMovimiento.Compra,
                 ReferenciaId = compraNueva.Id,
-                Concepto = $"Compra de {compraNueva.Producto?.Nombre ?? "producto"} - Voucher {compraNueva.NumeroVoucher}",
-                Monto = montoTotal,
+                Concepto = $"Compra con {compra.Detalles.Count} producto(s) - Voucher {compraNueva.NumeroVoucher}",
+                Monto = compra.MontoTotal,
                 TipoOperacion = TipoOperacion.Egreso,
                 FechaMovimiento = DateTime.Now,
                 EsAjustePosterior = false
@@ -111,16 +179,18 @@ public class ComprasService : IComprasService
             _context.MovimientosCaja.Add(movimiento);
             await _context.SaveChangesAsync();
 
-            // 9. Si hay abono implícito (cuando request tiene un monto de abono)
-            // Por ahora no implementamos esto, se manejará en una versión futura
-
             // 10. Commit de la transacción
             await transaction.CommitAsync();
 
             // 11. Cargar las relaciones para el voucher
             await _context.Entry(compraNueva).Reference(c => c.ClienteProveedor).LoadAsync();
             await _context.Entry(compraNueva.ClienteProveedor!).Reference(c => c.Zona).LoadAsync();
-            await _context.Entry(compraNueva).Reference(c => c.Producto).LoadAsync();
+            await _context.Entry(compraNueva).Collection(c => c.Detalles).LoadAsync();
+
+            foreach (var detalle in compraNueva.Detalles)
+            {
+                await _context.Entry(detalle).Reference(d => d.Producto).LoadAsync();
+            }
 
             // 12. Generar e imprimir voucher (no bloquea si falla)
             try
@@ -145,66 +215,10 @@ public class ComprasService : IComprasService
 
     public async Task<CompraResponse> EditarCompraAsync(int compraId, EditarCompraRequest request)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-
-        try
-        {
-            // 1. Obtener la compra
-            var compra = await _compraRepository.GetByIdAsync(compraId);
-            if (compra == null)
-            {
-                throw new InvalidOperationException("La compra no existe.");
-            }
-
-            // 2. Validar que la compra es del día actual
-            var esDelDiaActual = await _compraRepository.EsCompraDelDiaActualAsync(compraId);
-            if (!esDelDiaActual)
-            {
-                throw new InvalidOperationException("Solo se pueden editar compras del día actual. Para modificaciones de días anteriores, use la función de Ajuste Posterior.");
-            }
-
-            // 3. Recalcular peso neto y monto total
-            var pesoNetoAnterior = compra.PesoNeto;
-            var montoTotalAnterior = compra.MontoTotal;
-
-            compra.PesoBruto = request.PesoBruto;
-            compra.DescuentoKg = request.DescuentoKg;
-            compra.PrecioPorKg = request.PrecioPorKg;
-            compra.PesoNeto = CalculosHelper.CalcularPesoNeto(request.PesoBruto, request.DescuentoKg);
-            compra.MontoTotal = CalculosHelper.CalcularMontoTotal(compra.PesoNeto, request.PrecioPorKg);
-            compra.Editada = true;
-            compra.FechaEdicion = DateTime.Now;
-
-            // 4. Actualizar la compra
-            await _compraRepository.UpdateAsync(compra);
-
-            // 5. Actualizar el movimiento de caja correspondiente
-            var movimiento = await _context.MovimientosCaja
-                .FirstOrDefaultAsync(m => m.TipoMovimiento == TipoMovimiento.Compra && m.ReferenciaId == compraId);
-
-            if (movimiento != null)
-            {
-                movimiento.Monto = compra.MontoTotal;
-                movimiento.Concepto = $"Compra de {compra.Producto?.Nombre ?? "producto"} - Voucher {compra.NumeroVoucher} (Editada)";
-                _context.MovimientosCaja.Update(movimiento);
-                await _context.SaveChangesAsync();
-            }
-
-            // 6. Commit de la transacción
-            await transaction.CommitAsync();
-
-            _logger.LogInformation("Compra {CompraId} editada. Monto anterior: {MontoAnterior}, Nuevo monto: {MontoNuevo}",
-                compraId, montoTotalAnterior, compra.MontoTotal);
-
-            // 7. Retornar respuesta
-            return MapToResponse(compra);
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "Error al editar compra {CompraId}", compraId);
-            throw;
-        }
+        // TODO: Rediseñar para soportar edición de compras multi-producto
+        // Requiere permitir agregar/eliminar/modificar detalles individuales
+        await Task.CompletedTask;
+        throw new NotImplementedException("La edición de compras multi-producto no está implementada aún. Use Ajuste Posterior para modificaciones.");
     }
 
     public async Task<CompraResponse?> GetByIdAsync(int id)
@@ -254,16 +268,22 @@ public class ComprasService : IComprasService
             ClienteProveedorId = compra.ClienteProveedorId,
             ClienteNombre = compra.ClienteProveedor?.NombreCompleto ?? string.Empty,
             ClienteDNI = compra.ClienteProveedor?.DNI ?? string.Empty,
-            ProductoId = compra.ProductoId,
-            ProductoNombre = compra.Producto?.Nombre ?? string.Empty,
             CajaId = compra.CajaId,
-            NivelSecado = compra.NivelSecado,
-            Calidad = compra.Calidad,
-            TipoPesado = compra.TipoPesado,
-            PesoBruto = compra.PesoBruto,
-            DescuentoKg = compra.DescuentoKg,
-            PesoNeto = compra.PesoNeto,
-            PrecioPorKg = compra.PrecioPorKg,
+            Detalles = compra.Detalles.Select(d => new DetalleCompraResponse
+            {
+                Id = d.Id,
+                ProductoId = d.ProductoId,
+                ProductoNombre = d.Producto?.Nombre ?? string.Empty,
+                NivelSecado = d.NivelSecado,
+                Calidad = d.Calidad,
+                TipoPesado = d.TipoPesado,
+                PesoBruto = d.PesoBruto,
+                DescuentoKg = d.DescuentoKg,
+                PesoNeto = d.PesoNeto,
+                PrecioPorKg = d.PrecioPorKg,
+                Subtotal = d.Subtotal
+            }).ToList(),
+            PesoTotal = compra.PesoTotal,
             MontoTotal = compra.MontoTotal,
             FechaCompra = compra.FechaCompra,
             Editada = compra.Editada,

@@ -1,0 +1,66 @@
+<div class="zonas-container">
+  <app-alert-banner
+    *ngIf="showAlert"
+    [type]="alertType"
+    [message]="alertMessage">
+  </app-alert-banner>
+
+  <div class="header">
+    <h1>Gestión de Zonas</h1>
+    <button mat-raised-button color="primary" (click)="abrirFormularioNueva()">
+      <mat-icon>add</mat-icon>
+      Nueva Zona
+    </button>
+  </div>
+
+  <mat-card>
+    <mat-card-content>
+      <div *ngIf="loading" class="loading-container">
+        <mat-spinner></mat-spinner>
+        <p>Cargando zonas...</p>
+      </div>
+
+      <div *ngIf="!loading && zonas.length === 0" class="no-data">
+        <mat-icon>location_off</mat-icon>
+        <p>No hay zonas registradas</p>
+        <button mat-raised-button color="primary" (click)="abrirFormularioNueva()">
+          Crear Primera Zona
+        </button>
+      </div>
+
+      <table *ngIf="!loading && zonas.length > 0" class="zonas-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let zona of zonas">
+            <td>{{ zona.id }}</td>
+            <td><strong>{{ zona.nombre }}</strong></td>
+            <td>{{ zona.descripcion || '-' }}</td>
+            <td class="actions">
+              <button
+                mat-icon-button
+                color="accent"
+                (click)="verClientes(zona)"
+                matTooltip="Ver Clientes">
+                <mat-icon>people</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="abrirFormularioEditar(zona)"
+                matTooltip="Editar">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </mat-card-content>
+  </mat-card>
+</div>

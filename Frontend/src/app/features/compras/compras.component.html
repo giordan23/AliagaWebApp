@@ -1,0 +1,169 @@
+<div class="compras-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Gestión de Compras</h1>
+    <p class="subtitle">Registra compras de productos agrícolas a proveedores</p>
+  </div>
+
+  <!-- Botón Registrar Compra -->
+  <div class="actions-bar">
+    <button mat-raised-button color="primary" (click)="abrirDialogoRegistrar()" [disabled]="!cajaAbierta">
+      <mat-icon>add</mat-icon>
+      Nueva Compra
+    </button>
+    <mat-chip-set *ngIf="!cajaAbierta">
+      <mat-chip class="warning-chip">
+        <mat-icon>warning</mat-icon>
+        Caja cerrada - No se pueden registrar compras
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+
+  <!-- Filtros -->
+  <mat-card class="filters-card">
+    <mat-card-content>
+      <form [formGroup]="filtrosForm" class="filters-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Producto</mat-label>
+          <mat-select formControlName="productoId">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let producto of productos" [value]="producto.id">
+              {{ producto.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha Inicio</mat-label>
+          <input matInput type="date" formControlName="fechaInicio">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha Fin</mat-label>
+          <input matInput type="date" formControlName="fechaFin">
+        </mat-form-field>
+
+        <button mat-raised-button color="accent" (click)="aplicarFiltros()">
+          <mat-icon>filter_list</mat-icon>
+          Filtrar
+        </button>
+        <button mat-button (click)="limpiarFiltros()">
+          <mat-icon>clear</mat-icon>
+          Limpiar
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tabla de Compras -->
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Compras Registradas</mat-card-title>
+      <button mat-icon-button (click)="cargarCompras()" matTooltip="Actualizar">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-container">
+        <table mat-table [dataSource]="compras" class="compras-table">
+          <!-- Voucher -->
+          <ng-container matColumnDef="voucher">
+            <th mat-header-cell *matHeaderCellDef>Voucher</th>
+            <td mat-cell *matCellDef="let compra">
+              <span class="voucher-number">{{ compra.numeroVoucher | numeroVoucher }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Fecha -->
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef>Fecha</th>
+            <td mat-cell *matCellDef="let compra">{{ compra.fechaCompra | formatoFecha: true }}</td>
+          </ng-container>
+
+          <!-- Cliente -->
+          <ng-container matColumnDef="cliente">
+            <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+            <td mat-cell *matCellDef="let compra">{{ compra.clienteNombre }}</td>
+          </ng-container>
+
+          <!-- Productos -->
+          <ng-container matColumnDef="productos">
+            <th mat-header-cell *matHeaderCellDef>Productos</th>
+            <td mat-cell *matCellDef="let compra">
+              <div class="productos-cell">
+                <span class="productos-count">{{ compra.detalles?.length || 0 }} producto(s)</span>
+                <span class="productos-list" *ngIf="compra.detalles && compra.detalles.length > 0">
+                  <span *ngFor="let detalle of compra.detalles; let i = index">
+                    {{ detalle.productoNombre }}<span *ngIf="i < compra.detalles.length - 1">, </span>
+                  </span>
+                </span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Peso Total -->
+          <ng-container matColumnDef="pesoTotal">
+            <th mat-header-cell *matHeaderCellDef class="text-right">Peso Total</th>
+            <td mat-cell *matCellDef="let compra" class="text-right">
+              <span class="peso-total">{{ compra.pesoTotal | number:'1.1-1' }} kg</span>
+            </td>
+          </ng-container>
+
+          <!-- Monto Total -->
+          <ng-container matColumnDef="monto">
+            <th mat-header-cell *matHeaderCellDef class="text-right">Monto Total</th>
+            <td mat-cell *matCellDef="let compra" class="text-right">
+              <span class="monto-total">{{ compra.montoTotal | formatoMoneda }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Estado -->
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let compra">
+              <mat-icon *ngIf="compra.editada" class="edit-icon" matTooltip="Editada">edit</mat-icon>
+              <mat-icon *ngIf="compra.esAjustePosterior" class="ajuste-icon" matTooltip="Ajuste Posterior">history</mat-icon>
+            </td>
+          </ng-container>
+
+          <!-- Acciones -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+            <td mat-cell *matCellDef="let compra">
+              <button mat-icon-button (click)="verDetalle(compra.id)" matTooltip="Ver Detalle">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button (click)="reimprimirVoucher(compra.id)" matTooltip="Reimprimir Voucher">
+                <mat-icon>print</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnasCompras"></tr>
+          <tr mat-row *matRowDef="let row; columns: columnasCompras;"></tr>
+
+          <!-- Empty State -->
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="columnasCompras.length">
+              <div class="empty-state">
+                <mat-icon>shopping_cart</mat-icon>
+                <p>No hay compras registradas</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      <div class="pagination" *ngIf="totalItems > pageSize">
+        <button mat-icon-button (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+        <button mat-icon-button (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

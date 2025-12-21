@@ -58,7 +58,7 @@ public class ReportesService : IReportesService
                     ClienteNombre = g.Key.NombreCompleto,
                     Zona = g.Key.ZonaNombre,
                     TotalCompras = g.Count(),
-                    PesoTotalKg = g.Sum(c => c.PesoNeto),
+                    PesoTotalKg = g.Sum(c => c.PesoTotal),
                     MontoTotal = g.Sum(c => c.MontoTotal),
                     SaldoPrestamo = g.Key.SaldoPrestamo,
                     UltimaCompra = g.Max(c => c.FechaCompra)
@@ -79,35 +79,37 @@ public class ReportesService : IReportesService
     {
         try
         {
-            var query = _context.Compras
-                .Include(c => c.Producto)
+            // Ahora trabajamos con DetallesCompra en lugar de Compras directamente
+            var query = _context.DetallesCompra
+                .Include(d => d.Producto)
+                .Include(d => d.Compra)
                 .AsQueryable();
 
-            // Aplicar filtros
+            // Aplicar filtros de fecha
             if (filtros.FechaInicio.HasValue)
-                query = query.Where(c => c.FechaCompra.Date >= filtros.FechaInicio.Value.Date);
+                query = query.Where(d => d.Compra.FechaCompra.Date >= filtros.FechaInicio.Value.Date);
 
             if (filtros.FechaFin.HasValue)
-                query = query.Where(c => c.FechaCompra.Date <= filtros.FechaFin.Value.Date);
+                query = query.Where(d => d.Compra.FechaCompra.Date <= filtros.FechaFin.Value.Date);
 
             if (filtros.ProductoId.HasValue)
-                query = query.Where(c => c.ProductoId == filtros.ProductoId.Value);
+                query = query.Where(d => d.ProductoId == filtros.ProductoId.Value);
 
             // Agrupar por producto
             var resultado = await query
-                .GroupBy(c => new
+                .GroupBy(d => new
                 {
-                    c.ProductoId,
-                    c.Producto.Nombre
+                    d.ProductoId,
+                    d.Producto.Nombre
                 })
                 .Select(g => new ReporteComprasProductoResponse
                 {
                     ProductoNombre = g.Key.Nombre,
-                    TotalCompras = g.Count(),
-                    PesoTotalKg = g.Sum(c => c.PesoNeto),
-                    MontoTotal = g.Sum(c => c.MontoTotal),
-                    PrecioPromedioPorKg = g.Average(c => c.PrecioPorKg),
-                    PesoPromedioCompra = g.Average(c => c.PesoNeto)
+                    TotalCompras = g.Select(d => d.CompraId).Distinct().Count(), // Contar compras únicas
+                    PesoTotalKg = g.Sum(d => d.PesoNeto),
+                    MontoTotal = g.Sum(d => d.Subtotal),
+                    PrecioPromedioPorKg = g.Average(d => d.PrecioPorKg),
+                    PesoPromedioCompra = g.Average(d => d.PesoNeto)
                 })
                 .OrderByDescending(r => r.PesoTotalKg)
                 .ToListAsync();
@@ -152,7 +154,7 @@ public class ReportesService : IReportesService
                 {
                     g.Key.ZonaNombre,
                     TotalCompras = g.Count(),
-                    PesoTotalKg = g.Sum(c => c.PesoNeto),
+                    PesoTotalKg = g.Sum(c => c.PesoTotal),
                     MontoTotal = g.Sum(c => c.MontoTotal),
                     ProveedoresIds = g.Select(c => c.ClienteProveedorId).Distinct()
                 })

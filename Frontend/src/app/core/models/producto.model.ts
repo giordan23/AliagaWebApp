@@ -2,8 +2,8 @@ export interface Producto {
   id: number;
   nombre: string;
   precioSugeridoPorKg: number;
-  nivelesSecado: string; // JSON string
-  calidades: string; // JSON string
+  nivelesSecado: string[]; // Array de niveles de secado
+  calidades: string[]; // Array de calidades
   permiteValdeo: boolean;
   fechaModificacion: Date;
 }

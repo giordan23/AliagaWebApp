@@ -1,0 +1,298 @@
+<div class="caja-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Gestión de Caja</h1>
+    <p class="subtitle">Administra la apertura, cierre y movimientos de caja diaria</p>
+  </div>
+
+  <!-- Caja Actual -->
+  <div class="caja-actual-section">
+    <div class="section-header">
+      <h2>Caja Actual</h2>
+      <div class="actions" *ngIf="cajaActual">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="abrirDialogoAbrirCaja()"
+          *ngIf="!cajaActual.id"
+          class="btn-action">
+          <mat-icon>lock_open</mat-icon>
+          Abrir Caja
+        </button>
+        <button
+          mat-raised-button
+          color="accent"
+          (click)="abrirDialogoMovimiento()"
+          *ngIf="cajaActual.id && cajaActual.estado === 0"
+          class="btn-action">
+          <mat-icon>add_circle</mat-icon>
+          Registrar Movimiento
+        </button>
+        <button
+          mat-raised-button
+          color="warn"
+          (click)="abrirDialogoCerrarCaja()"
+          *ngIf="cajaActual.id && cajaActual.estado === 0"
+          class="btn-action">
+          <mat-icon>lock</mat-icon>
+          Cerrar Caja
+        </button>
+        <button
+          mat-raised-button
+          (click)="reabrirCaja()"
+          *ngIf="cajaActual.id && cajaActual.estado !== 0"
+          class="btn-action">
+          <mat-icon>lock_open</mat-icon>
+          Reabrir Caja
+        </button>
+      </div>
+    </div>
+
+    <!-- Tarjeta de Caja Actual -->
+    <mat-card *ngIf="cajaActual && cajaActual.id" class="caja-card" [ngClass]="{'caja-abierta': cajaActual.estado === 0, 'caja-cerrada': cajaActual.estado !== 0}">
+      <mat-card-content>
+        <div class="caja-grid">
+          <div class="caja-info-group">
+            <div class="info-item">
+              <span class="label">Estado:</span>
+              <mat-chip-set>
+                <mat-chip [ngClass]="getEstadoClass(cajaActual.estado)">
+                  {{ getEstadoTexto(cajaActual.estado) }}
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+            <div class="info-item">
+              <span class="label">Fecha:</span>
+              <span class="value">{{ cajaActual.fecha | formatoFecha }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Monto Inicial:</span>
+              <span class="value money">{{ cajaActual.montoInicial | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Saldo Actual:</span>
+              <span class="value money">{{ cajaActual.saldoActual | formatoMoneda }}</span>
+            </div>
+          </div>
+
+          <div class="caja-info-group" *ngIf="cajaActual.estado !== 0">
+            <div class="info-item">
+              <span class="label">Arqueo Real:</span>
+              <span class="value money">{{ cajaActual.arqueoReal | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Diferencia:</span>
+              <span class="value money" [ngClass]="{'positive': cajaActual.diferencia >= 0, 'negative': cajaActual.diferencia < 0}">
+                {{ cajaActual.diferencia | formatoMoneda }}
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="label">Cerrada por:</span>
+              <span class="value">{{ cajaActual.usuarioCierre || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Fecha Cierre:</span>
+              <span class="value">{{ cajaActual.fechaCierre | formatoFecha: true }}</span>
+            </div>
+          </div>
+
+          <div class="caja-info-group">
+            <div class="info-item">
+              <span class="label">Aperturada por:</span>
+              <span class="value">{{ cajaActual.usuarioApertura }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Fecha Apertura:</span>
+              <span class="value">{{ cajaActual.fechaApertura | formatoFecha: true }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- No hay caja -->
+    <mat-card *ngIf="!cajaActual || !cajaActual.id" class="empty-state">
+      <mat-card-content>
+        <mat-icon class="empty-icon">inbox</mat-icon>
+        <h3>No hay caja abierta</h3>
+        <p>Abre una nueva caja para comenzar las operaciones del día</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Movimientos de Caja Actual -->
+  <div class="movimientos-section" *ngIf="cajaActual && cajaActual.id">
+    <div class="section-header">
+      <h2>Movimientos de Caja</h2>
+      <button mat-icon-button (click)="cargarMovimientos()" matTooltip="Actualizar">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+
+    <mat-card>
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="movimientos" class="movimientos-table">
+            <!-- Fecha -->
+            <ng-container matColumnDef="fecha">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let movimiento">{{ movimiento.fechaMovimiento | formatoFecha: true }}</td>
+            </ng-container>
+
+            <!-- Tipo -->
+            <ng-container matColumnDef="tipo">
+              <th mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td mat-cell *matCellDef="let movimiento">
+                <mat-chip-set>
+                  <mat-chip [ngClass]="getTipoMovimientoClass(movimiento.tipoMovimiento)">
+                    {{ getTipoMovimientoTexto(movimiento.tipoMovimiento) }}
+                  </mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <!-- Concepto -->
+            <ng-container matColumnDef="concepto">
+              <th mat-header-cell *matHeaderCellDef>Concepto</th>
+              <td mat-cell *matCellDef="let movimiento">{{ movimiento.concepto }}</td>
+            </ng-container>
+
+            <!-- Operación -->
+            <ng-container matColumnDef="operacion">
+              <th mat-header-cell *matHeaderCellDef>Operación</th>
+              <td mat-cell *matCellDef="let movimiento">
+                <span [ngClass]="{'ingreso': movimiento.tipoOperacion === 0, 'egreso': movimiento.tipoOperacion === 1}">
+                  {{ movimiento.tipoOperacion === 0 ? 'Ingreso' : 'Egreso' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Monto -->
+            <ng-container matColumnDef="monto">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Monto</th>
+              <td mat-cell *matCellDef="let movimiento" class="text-right">
+                <span [ngClass]="{'ingreso': movimiento.tipoOperacion === 0, 'egreso': movimiento.tipoOperacion === 1}">
+                  {{ movimiento.monto | formatoMoneda }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Ajuste -->
+            <ng-container matColumnDef="ajuste">
+              <th mat-header-cell *matHeaderCellDef>Ajuste</th>
+              <td mat-cell *matCellDef="let movimiento">
+                <mat-icon *ngIf="movimiento.esAjustePosterior" class="ajuste-icon" matTooltip="Ajuste Posterior">edit</mat-icon>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasMovimientos"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasMovimientos;"></tr>
+
+            <!-- Empty State -->
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" [attr.colspan]="columnasMovimientos.length">
+                <div class="empty-state-table">
+                  <mat-icon>receipt_long</mat-icon>
+                  <p>No hay movimientos registrados</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Historial de Cajas -->
+  <div class="historial-section">
+    <div class="section-header">
+      <h2>Historial de Cajas</h2>
+      <button mat-icon-button (click)="cargarHistorial()" matTooltip="Actualizar">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+
+    <mat-card>
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="historial" class="historial-table">
+            <!-- Fecha -->
+            <ng-container matColumnDef="fecha">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let caja">{{ caja.fecha | formatoFecha }}</td>
+            </ng-container>
+
+            <!-- Estado -->
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let caja">
+                <mat-chip-set>
+                  <mat-chip [ngClass]="getEstadoClass(caja.estado)">
+                    {{ getEstadoTexto(caja.estado) }}
+                  </mat-chip>
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <!-- Monto Inicial -->
+            <ng-container matColumnDef="montoInicial">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Monto Inicial</th>
+              <td mat-cell *matCellDef="let caja" class="text-right">{{ caja.montoInicial | formatoMoneda }}</td>
+            </ng-container>
+
+            <!-- Monto Esperado -->
+            <ng-container matColumnDef="montoEsperado">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Monto Esperado</th>
+              <td mat-cell *matCellDef="let caja" class="text-right">{{ caja.montoEsperado | formatoMoneda }}</td>
+            </ng-container>
+
+            <!-- Arqueo Real -->
+            <ng-container matColumnDef="arqueoReal">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Arqueo Real</th>
+              <td mat-cell *matCellDef="let caja" class="text-right">{{ caja.arqueoReal | formatoMoneda }}</td>
+            </ng-container>
+
+            <!-- Diferencia -->
+            <ng-container matColumnDef="diferencia">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Diferencia</th>
+              <td mat-cell *matCellDef="let caja" class="text-right">
+                <span [ngClass]="{'positive': caja.diferencia >= 0, 'negative': caja.diferencia < 0}">
+                  {{ caja.diferencia | formatoMoneda }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Usuario Apertura -->
+            <ng-container matColumnDef="usuarioApertura">
+              <th mat-header-cell *matHeaderCellDef>Usuario Apertura</th>
+              <td mat-cell *matCellDef="let caja">{{ caja.usuarioApertura }}</td>
+            </ng-container>
+
+            <!-- Acciones -->
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef>Acciones</th>
+              <td mat-cell *matCellDef="let caja">
+                <button mat-icon-button (click)="verDetalleCaja(caja.id)" matTooltip="Ver Detalle">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasHistorial"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasHistorial;"></tr>
+
+            <!-- Empty State -->
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" [attr.colspan]="columnasHistorial.length">
+                <div class="empty-state-table">
+                  <mat-icon>history</mat-icon>
+                  <p>No hay historial de cajas</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -1680,56 +1680,55 @@ SaldoDespues = SaldoAnterior - MontoAbono
 
 ---
 
-## 10. PLAN DE IMPLEMENTACIÓN (SUGERIDO)
+## 10. ORDEN DE IMPLEMENTACIÓN SUGERIDO
 
-### Fase 1: Fundamentos (Semanas 1-2)
+### Fase 1: Fundamentos
 1. Setup del proyecto (.NET 10 + Angular)
 2. Configuración de SQLite
 3. Modelos de datos y migraciones
 4. Estructura base de Angular (layout, routing, menú)
 5. Cliente anónimo precargado
 
-### Fase 2: Módulo Caja (Semanas 3-4)
+### Fase 2: Módulo Caja
 1. Abrir/cerrar caja
 2. Movimientos de caja (inyección, retiro, gasto)
 3. Vista de caja actual
 4. Historial de cajas
 5. Cierre automático
 
-### Fase 3: Módulos Maestros (Semanas 5-6)
+### Fase 3: Módulos Maestros
 1. Zonas (CRUD básico)
 2. Productos (lista + editar precio)
 3. Clientes proveedores (con API RENIEC)
 4. Clientes compradores (simple)
 
-### Fase 4: Operaciones Core (Semanas 7-9)
+### Fase 4: Operaciones Core
 1. Compras (registro completo + voucher)
 2. Ventas (registro + movimiento caja)
 3. Edición de compras/ventas
 4. Integración con caja
 
-### Fase 5: Préstamos (Semana 10)
+### Fase 5: Préstamos
 1. Registro de préstamos y abonos
 2. Historial de movimientos
 3. Integración con módulo clientes y caja
 
-### Fase 6: Reportes (Semanas 11-12)
+### Fase 6: Reportes
 1. Implementar 5 tipos de reportes
 2. Filtros dinámicos
 3. Exportación a Excel
 
-### Fase 7: Ajustes y Pulido (Semanas 13-14)
+### Fase 7: Ajustes y Pulido
 1. Ajustes posteriores en cajas históricas
 2. Backup/exportación BD
 3. Mejoras de UX
 4. Optimización de rendimiento
 5. Testing integral
 
-### Fase 8: Testing y Capacitación (Semana 15)
-1. Pruebas de aceptación con usuario final
+### Fase 8: Testing Final
+1. Pruebas de aceptación
 2. Corrección de bugs
-3. Capacitación del dueño
-4. Documentación de usuario
+3. Documentación de usuario
 
 ---
 

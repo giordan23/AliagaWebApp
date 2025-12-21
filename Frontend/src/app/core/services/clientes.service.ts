@@ -13,22 +13,20 @@ export class ClientesService {
 
   // Proveedores
   obtenerProveedores(
-    page: number = 1,
-    pageSize: number = 50,
-    filtros?: {
-      dni?: string;
-      nombre?: string;
-      zonaId?: number;
-    }
+    skip: number = 0,
+    take: number = 1000,
+    search?: string,
+    zonaId?: number
   ): Observable<any> {
     let params = new HttpParams()
-      .set('page', page.toString())
-      .set('pageSize', pageSize.toString());
+      .set('skip', skip.toString())
+      .set('take', take.toString());
 
-    if (filtros) {
-      if (filtros.dni) params = params.set('dni', filtros.dni);
-      if (filtros.nombre) params = params.set('nombre', filtros.nombre);
-      if (filtros.zonaId) params = params.set('zonaId', filtros.zonaId.toString());
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (zonaId) {
+      params = params.set('zonaId', zonaId.toString());
     }
 
     return this.http.get(`${this.apiUrl}/proveedores`, { params });
@@ -55,10 +53,8 @@ export class ClientesService {
   }
 
   // Compradores
-  obtenerCompradores(page: number = 1, pageSize: number = 50): Observable<any> {
-    return this.http.get(`${this.apiUrl}/compradores`, {
-      params: { page: page.toString(), pageSize: pageSize.toString() }
-    });
+  obtenerCompradores(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/compradores`);
   }
 
   obtenerCompradorPorId(id: number): Observable<any> {

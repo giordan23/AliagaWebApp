@@ -1,0 +1,296 @@
+.caja-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Sections */
+.caja-actual-section,
+.movimientos-section,
+.historial-section {
+  margin-bottom: 32px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Caja Card */
+.caja-card {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  transition: all 0.3s ease;
+}
+
+.caja-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.caja-abierta {
+  border-left: 4px solid #48bb78;
+}
+
+.caja-cerrada {
+  border-left: 4px solid #f56565;
+}
+
+.caja-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.caja-info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item .label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item .value {
+  font-size: 16px;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.info-item .value.money {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2b6cb0;
+}
+
+.info-item .value.positive {
+  color: #48bb78;
+}
+
+.info-item .value.negative {
+  color: #f56565;
+}
+
+/* Chips */
+mat-chip {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estado-abierta {
+  background-color: #c6f6d5 !important;
+  color: #22543d !important;
+}
+
+.estado-cerrada-manual {
+  background-color: #fed7d7 !important;
+  color: #742a2a !important;
+}
+
+.estado-cerrada-automatica {
+  background-color: #feebc8 !important;
+  color: #7c2d12 !important;
+}
+
+.tipo-compra {
+  background-color: #bee3f8 !important;
+  color: #2c5282 !important;
+}
+
+.tipo-venta {
+  background-color: #c6f6d5 !important;
+  color: #22543d !important;
+}
+
+.tipo-prestamo {
+  background-color: #feebc8 !important;
+  color: #7c2d12 !important;
+}
+
+.tipo-abono {
+  background-color: #d6bcfa !important;
+  color: #44337a !important;
+}
+
+.tipo-inyeccion {
+  background-color: #e9d8fd !important;
+  color: #553c9a !important;
+}
+
+.tipo-retiro {
+  background-color: #fed7d7 !important;
+  color: #742a2a !important;
+}
+
+.tipo-gasto {
+  background-color: #fef5e7 !important;
+  color: #975a16 !important;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background-color: #f7fafc;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e0;
+}
+
+.empty-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: #a0aec0;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.empty-state p {
+  color: #718096;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+}
+
+.movimientos-table,
+.historial-table {
+  width: 100%;
+  background-color: white;
+}
+
+.movimientos-table th,
+.historial-table th {
+  background-color: #f7fafc;
+  font-weight: 600;
+  color: #2d3748;
+  padding: 16px;
+}
+
+.movimientos-table td,
+.historial-table td {
+  padding: 14px 16px;
+  color: #4a5568;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.ingreso {
+  color: #48bb78;
+  font-weight: 600;
+}
+
+.egreso {
+  color: #f56565;
+  font-weight: 600;
+}
+
+.ajuste-icon {
+  color: #ed8936;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.empty-state-table {
+  text-align: center;
+  padding: 32px;
+}
+
+.empty-state-table mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #cbd5e0;
+  margin-bottom: 12px;
+}
+
+.empty-state-table p {
+  color: #a0aec0;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .caja-container {
+    padding: 16px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .caja-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-action {
+    width: 100%;
+    justify-content: center;
+  }
+}

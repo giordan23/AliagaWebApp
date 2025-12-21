@@ -82,7 +82,7 @@ public class DashboardService : IDashboardService
                 MontoInicialCaja = cajaHoy.MontoInicial,
                 TotalCompras = comprasHoy.Count,
                 MontoTotalCompras = comprasHoy.Sum(c => c.MontoTotal),
-                PesoTotalComprasKg = comprasHoy.Sum(c => c.PesoNeto),
+                PesoTotalComprasKg = comprasHoy.Sum(c => c.PesoTotal),
                 TotalVentas = ventasHoy.Count,
                 MontoTotalVentas = ventasHoy.Sum(v => v.MontoTotal),
                 TotalPrestamos = prestamosHoy.Count,

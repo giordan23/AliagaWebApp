@@ -8,7 +8,15 @@
       "Bash(dotnet ef migrations:*)",
       "Bash(dotnet ef database update:*)",
       "Bash(npm install:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(done)",
+      "Bash(npm start)",
+      "Bash(cat:*)",
+      "Bash(netstat:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)"
     ]
   }
 }
