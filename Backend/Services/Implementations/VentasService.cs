@@ -36,22 +36,48 @@ public class VentasService : IVentasService
 
         try
         {
-            // 1. Validar que existe caja abierta del día actual
-            var cajaActual = await _cajaRepository.GetCajaAbiertaAsync();
-            if (cajaActual == null)
+            // Las ventas son registros históricos independientes de la caja
+            // No requieren que la caja esté abierta y no crean movimientos de caja
+
+            // 1. Determinar o crear el cliente comprador
+            int clienteCompradorId;
+
+            if (request.ClienteCompradorId.HasValue && request.ClienteCompradorId.Value > 0)
             {
-                throw new InvalidOperationException("No existe una caja abierta. Por favor, abra la caja antes de registrar ventas.");
+                // Usar el cliente existente
+                clienteCompradorId = request.ClienteCompradorId.Value;
+            }
+            else if (!string.IsNullOrWhiteSpace(request.NombreClienteNuevo))
+            {
+                // Crear un nuevo cliente comprador (siempre en mayúsculas)
+                var nuevoCliente = new ClienteComprador
+                {
+                    Nombre = request.NombreClienteNuevo.Trim().ToUpper(),
+                    FechaCreacion = DateTime.Now,
+                    FechaModificacion = DateTime.Now
+                };
+
+                _context.ClientesCompradores.Add(nuevoCliente);
+                await _context.SaveChangesAsync();
+
+                clienteCompradorId = nuevoCliente.Id;
+                _logger.LogInformation("Cliente comprador '{Nombre}' creado automáticamente con ID {Id}",
+                    nuevoCliente.Nombre, nuevoCliente.Id);
+            }
+            else
+            {
+                throw new InvalidOperationException("Debe proporcionar un cliente comprador existente o el nombre de uno nuevo.");
             }
 
             // 2. Calcular monto total
             var montoTotal = CalculosHelper.CalcularMontoTotal(request.PesoNeto, request.PrecioPorKg);
 
-            // 3. Crear la venta
+            // 3. Crear la venta (sin CajaId)
             var venta = new Venta
             {
-                ClienteCompradorId = request.ClienteCompradorId,
+                ClienteCompradorId = clienteCompradorId,
                 ProductoId = request.ProductoId,
-                CajaId = cajaActual.Id,
+                CajaId = null, // Las ventas son independientes de la caja
                 PesoBruto = request.PesoNeto, // En ventas, peso bruto = peso neto
                 PesoNeto = request.PesoNeto,
                 PrecioPorKg = request.PrecioPorKg,
@@ -63,31 +89,16 @@ public class VentasService : IVentasService
 
             // 4. Guardar la venta
             var ventaNueva = await _ventasRepository.AddAsync(venta);
-
-            // 5. Crear movimiento de caja (ingreso)
-            var movimiento = new MovimientoCaja
-            {
-                CajaId = cajaActual.Id,
-                TipoMovimiento = TipoMovimiento.Venta,
-                ReferenciaId = ventaNueva.Id,
-                Concepto = $"Venta de {ventaNueva.Producto?.Nombre ?? "producto"}",
-                Monto = montoTotal,
-                TipoOperacion = TipoOperacion.Ingreso,
-                FechaMovimiento = DateTime.Now,
-                EsAjustePosterior = false
-            };
-
-            _context.MovimientosCaja.Add(movimiento);
             await _context.SaveChangesAsync();
 
-            // 6. Commit de la transacción
+            // 5. Commit de la transacción
             await transaction.CommitAsync();
 
-            // 7. Cargar las relaciones
+            // 6. Cargar las relaciones
             await _context.Entry(ventaNueva).Reference(v => v.ClienteComprador).LoadAsync();
             await _context.Entry(ventaNueva).Reference(v => v.Producto).LoadAsync();
 
-            // 8. Retornar respuesta
+            // 7. Retornar respuesta
             return MapToResponse(ventaNueva);
         }
         catch (Exception ex)
@@ -130,26 +141,17 @@ public class VentasService : IVentasService
 
             // 4. Actualizar la venta
             await _ventasRepository.UpdateAsync(venta);
+            await _context.SaveChangesAsync();
 
-            // 5. Actualizar el movimiento de caja correspondiente
-            var movimiento = await _context.MovimientosCaja
-                .FirstOrDefaultAsync(m => m.TipoMovimiento == TipoMovimiento.Venta && m.ReferenciaId == ventaId);
+            // Las ventas no crean ni actualizan movimientos de caja
 
-            if (movimiento != null)
-            {
-                movimiento.Monto = venta.MontoTotal;
-                movimiento.Concepto = $"Venta de {venta.Producto?.Nombre ?? "producto"} (Editada)";
-                _context.MovimientosCaja.Update(movimiento);
-                await _context.SaveChangesAsync();
-            }
-
-            // 6. Commit de la transacción
+            // 5. Commit de la transacción
             await transaction.CommitAsync();
 
             _logger.LogInformation("Venta {VentaId} editada. Monto anterior: {MontoAnterior}, Nuevo monto: {MontoNuevo}",
                 ventaId, montoTotalAnterior, venta.MontoTotal);
 
-            // 7. Retornar respuesta
+            // 6. Retornar respuesta
             return MapToResponse(venta);
         }
         catch (Exception ex)

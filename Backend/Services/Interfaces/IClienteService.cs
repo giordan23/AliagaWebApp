@@ -12,10 +12,12 @@ public interface IClienteService
     Task<int> GetTotalProveedoresCountAsync(string? searchTerm = null, int? zonaId = null);
     Task<ClienteProveedorResponse> CreateProveedorAsync(CrearClienteProveedorRequest request);
     Task<ClienteProveedorResponse> UpdateProveedorAsync(int id, ActualizarClienteProveedorRequest request);
+    Task DeleteProveedorAsync(int id);
 
     // Clientes Compradores
     Task<ClienteCompradorResponse?> GetCompradorByIdAsync(int id);
     Task<List<ClienteCompradorResponse>> GetCompradoresAsync();
     Task<ClienteCompradorResponse> CreateCompradorAsync(CrearClienteCompradorRequest request);
     Task<ClienteCompradorResponse> UpdateCompradorAsync(int id, CrearClienteCompradorRequest request);
+    Task DeleteCompradorAsync(int id);
 }

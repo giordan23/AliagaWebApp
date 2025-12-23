@@ -8,8 +8,10 @@ public interface ICajaService
     Task<CajaResumenResponse?> AbrirCajaAsync(AbrirCajaRequest request);
     Task<CajaResumenResponse?> CerrarCajaAsync(CerrarCajaRequest request);
     Task<CajaResumenResponse?> ReabrirCajaAsync(int cajaId);
+    Task<CajaResumenResponse?> ReabrirCajaDelDiaActualAsync();
     Task<CajaResumenResponse?> GetCajaActualAsync();
     Task<CajaDetalleResponse?> GetCajaDetalleAsync(int cajaId);
+    Task<CajaResumenResponse?> GetUltimaCajaCerradaAsync();
     Task<List<CajaResumenResponse>> GetHistorialCajasAsync(int skip = 0, int take = 50);
     Task<int> GetTotalCajasCountAsync();
     Task<MovimientoCajaResponse?> RegistrarMovimientoAsync(RegistrarMovimientoCajaRequest request);

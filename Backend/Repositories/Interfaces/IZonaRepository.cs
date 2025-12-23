@@ -10,5 +10,6 @@ public interface IZonaRepository
     Task<int> GetTotalCountAsync();
     Task<Zona> AddAsync(Zona zona);
     Task UpdateAsync(Zona zona);
+    Task DeleteAsync(int id);
     Task<bool> ExisteNombreAsync(string nombre, int? excludeId = null);
 }

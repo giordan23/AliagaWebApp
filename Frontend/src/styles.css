@@ -27,3 +27,8 @@ body {
 .mat-mdc-option:hover {
   background-color: rgba(0, 0, 0, 0.04) !important;
 }
+
+/* Estilo para prefijos de moneda */
+.currency-prefix {
+  padding-left: 5px;
+}

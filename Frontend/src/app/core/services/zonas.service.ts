@@ -11,10 +11,14 @@ export class ZonasService {
 
   constructor(private http: HttpClient) {}
 
-  obtenerTodas(page: number = 1, pageSize: number = 50): Observable<any> {
+  obtenerTodas(skip: number = 0, take: number = 50): Observable<any> {
     return this.http.get(this.apiUrl, {
-      params: { page: page.toString(), pageSize: pageSize.toString() }
+      params: { skip: skip.toString(), take: take.toString() }
     });
+  }
+
+  eliminar(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
   obtenerPorId(id: number): Observable<any> {

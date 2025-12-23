@@ -106,21 +106,52 @@ export class CajaComponent implements OnInit {
   }
 
   abrirDialogoAbrirCaja(): void {
-    const dialogRef = this.dialog.open(AbrirCajaDialogComponent, {
-      width: '500px',
-      disableClose: true
-    });
+    // Obtener la última caja cerrada para prellenar el monto inicial
+    this.cajaService.obtenerUltimaCajaCerrada().subscribe({
+      next: (ultimaCaja) => {
+        const montoInicialSugerido = ultimaCaja?.arqueoReal || 0;
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.cajaService.abrirCaja(result.montoInicial).subscribe({
-          next: () => {
-            this.mostrarAlerta('Caja abierta exitosamente', 'success');
-            this.cargarCajaActual();
-            this.cargarHistorial();
-          },
-          error: (error) => {
-            this.mostrarAlerta('Error al abrir la caja: ' + (error.error?.message || error.message), 'error');
+        const dialogRef = this.dialog.open(AbrirCajaDialogComponent, {
+          width: '500px',
+          disableClose: false,
+          data: { montoInicialSugerido }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result) {
+            this.cajaService.abrirCaja(result.montoInicial).subscribe({
+              next: () => {
+                this.mostrarAlerta('Caja abierta exitosamente', 'success');
+                this.cargarCajaActual();
+                this.cargarHistorial();
+              },
+              error: (error) => {
+                this.mostrarAlerta('Error al abrir la caja: ' + (error.error?.message || error.message), 'error');
+              }
+            });
+          }
+        });
+      },
+      error: () => {
+        // Si no hay caja anterior, abrir sin monto sugerido
+        const dialogRef = this.dialog.open(AbrirCajaDialogComponent, {
+          width: '500px',
+          disableClose: false,
+          data: { montoInicialSugerido: 0 }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result) {
+            this.cajaService.abrirCaja(result.montoInicial).subscribe({
+              next: () => {
+                this.mostrarAlerta('Caja abierta exitosamente', 'success');
+                this.cargarCajaActual();
+                this.cargarHistorial();
+              },
+              error: (error) => {
+                this.mostrarAlerta('Error al abrir la caja: ' + (error.error?.message || error.message), 'error');
+              }
+            });
           }
         });
       }
@@ -130,7 +161,7 @@ export class CajaComponent implements OnInit {
   abrirDialogoCerrarCaja(): void {
     const dialogRef = this.dialog.open(CerrarCajaDialogComponent, {
       width: '500px',
-      disableClose: true,
+      disableClose: false,
       data: { cajaActual: this.cajaActual }
     });
 
@@ -180,14 +211,13 @@ export class CajaComponent implements OnInit {
   abrirDialogoMovimiento(): void {
     const dialogRef = this.dialog.open(RegistrarMovimientoDialogComponent, {
       width: '600px',
-      disableClose: true,
+      disableClose: false,
       data: { cajaId: this.cajaActual.id }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         this.cajaService.registrarMovimiento(
-          this.cajaActual.id,
           result.tipoMovimiento,
           result.monto,
           result.concepto
@@ -304,7 +334,11 @@ export class CajaComponent implements OnInit {
           </mat-error>
         </mat-form-field>
       </form>
-      <p class="info-text">
+      <p class="info-text" *ngIf="montoSugerido > 0">
+        <mat-icon>lightbulb</mat-icon>
+        El monto inicial se ha prellenado con el arqueo de la última caja cerrada (S/ {{ montoSugerido | number:'1.2-2' }}). Puede modificarlo si es necesario.
+      </p>
+      <p class="info-text" *ngIf="montoSugerido === 0">
         <mat-icon>info</mat-icon>
         Ingrese el monto en efectivo con el que iniciará la caja del día.
       </p>
@@ -337,13 +371,16 @@ export class CajaComponent implements OnInit {
 })
 export class AbrirCajaDialogComponent {
   form: FormGroup;
+  montoSugerido: number = 0;
 
   constructor(
     private fb: FormBuilder,
-    private dialogRef: MatDialogRef<AbrirCajaDialogComponent>
+    private dialogRef: MatDialogRef<AbrirCajaDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {
+    this.montoSugerido = data?.montoInicialSugerido || 0;
     this.form = this.fb.group({
-      montoInicial: ['', [Validators.required, CustomValidators.monto()]]
+      montoInicial: [this.montoSugerido, [Validators.required, CustomValidators.monto()]]
     });
   }
 

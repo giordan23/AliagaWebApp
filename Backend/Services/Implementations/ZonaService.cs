@@ -78,11 +78,38 @@ public class ZonaService : IZonaService
         return MapToResponse(zona);
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        var zona = await _zonaRepository.GetByIdAsync(id);
+        if (zona == null)
+        {
+            throw new InvalidOperationException("Zona no encontrada");
+        }
+
+        // Actualizar clientes de esta zona a null (no eliminados)
+        var clientesDeZona = await _context.ClientesProveedores
+            .Where(c => c.ZonaId == id && !c.Eliminado)
+            .ToListAsync();
+
+        foreach (var cliente in clientesDeZona)
+        {
+            cliente.ZonaId = null;
+            cliente.FechaModificacion = DateTime.Now;
+        }
+
+        if (clientesDeZona.Any())
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        await _zonaRepository.DeleteAsync(id);
+    }
+
     public async Task<List<ClienteProveedorResponse>> GetClientesByZonaAsync(int zonaId)
     {
         var clientes = await _context.ClientesProveedores
             .Include(c => c.Zona)
-            .Where(c => c.ZonaId == zonaId)
+            .Where(c => c.ZonaId == zonaId && !c.Eliminado)
             .OrderBy(c => c.NombreCompleto)
             .ToListAsync();
 

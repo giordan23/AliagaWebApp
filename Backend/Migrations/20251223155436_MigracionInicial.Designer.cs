@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251219145548_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251223155436_MigracionInicial")]
+    partial class MigracionInicial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -77,6 +77,9 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("TEXT");
 
@@ -107,6 +110,9 @@ namespace Backend.Migrations
                     b.Property<string>("Direccion")
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("EsAnonimo")
                         .HasColumnType("INTEGER");
@@ -150,6 +156,7 @@ namespace Backend.Migrations
                         {
                             Id = 1,
                             DNI = "00000000",
+                            Eliminado = false,
                             EsAnonimo = true,
                             FechaCreacion = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             FechaModificacion = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -167,17 +174,8 @@ namespace Backend.Migrations
                     b.Property<int>("CajaId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Calidad")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("ClienteProveedorId")
                         .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("DescuentoKg")
-                        .HasPrecision(18, 1)
-                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Editada")
                         .HasColumnType("INTEGER");
@@ -193,35 +191,16 @@ namespace Backend.Migrations
 
                     b.Property<decimal>("MontoTotal")
                         .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NivelSecado")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("NumeroVoucher")
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("PesoBruto")
+                    b.Property<decimal>("PesoTotal")
                         .HasPrecision(18, 1)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("PesoNeto")
-                        .HasPrecision(18, 1)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("PrecioPorKg")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ProductoId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TipoPesado")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("decimal(18,1)");
 
                     b.HasKey("Id");
 
@@ -231,8 +210,6 @@ namespace Backend.Migrations
 
                     b.HasIndex("NumeroVoucher")
                         .IsUnique();
-
-                    b.HasIndex("ProductoId");
 
                     b.ToTable("Compras");
                 });
@@ -286,6 +263,63 @@ namespace Backend.Migrations
                             RUC = "00000000000",
                             Telefono = "000-000-000"
                         });
+                });
+
+            modelBuilder.Entity("Backend.Models.DetalleCompra", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Calidad")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CompraId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("DescuentoKg")
+                        .HasPrecision(18, 1)
+                        .HasColumnType("decimal(18,1)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NivelSecado")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PesoBruto")
+                        .HasPrecision(18, 1)
+                        .HasColumnType("decimal(18,1)");
+
+                    b.Property<decimal>("PesoNeto")
+                        .HasPrecision(18, 1)
+                        .HasColumnType("decimal(18,1)");
+
+                    b.Property<decimal>("PrecioPorKg")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TipoPesado")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompraId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("DetallesCompra");
                 });
 
             modelBuilder.Entity("Backend.Models.MovimientoCaja", b =>
@@ -452,7 +486,7 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("CajaId")
+                    b.Property<int?>("CajaId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ClienteCompradorId")
@@ -549,15 +583,26 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Caja");
+
+                    b.Navigation("ClienteProveedor");
+                });
+
+            modelBuilder.Entity("Backend.Models.DetalleCompra", b =>
+                {
+                    b.HasOne("Backend.Models.Compra", "Compra")
+                        .WithMany("Detalles")
+                        .HasForeignKey("CompraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Backend.Models.Producto", "Producto")
-                        .WithMany("Compras")
+                        .WithMany()
                         .HasForeignKey("ProductoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Caja");
-
-                    b.Navigation("ClienteProveedor");
+                    b.Navigation("Compra");
 
                     b.Navigation("Producto");
                 });
@@ -597,8 +642,7 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.Caja", "Caja")
                         .WithMany("Ventas")
                         .HasForeignKey("CajaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Backend.Models.ClienteComprador", "ClienteComprador")
                         .WithMany("Ventas")
@@ -642,10 +686,13 @@ namespace Backend.Migrations
                     b.Navigation("Prestamos");
                 });
 
+            modelBuilder.Entity("Backend.Models.Compra", b =>
+                {
+                    b.Navigation("Detalles");
+                });
+
             modelBuilder.Entity("Backend.Models.Producto", b =>
                 {
-                    b.Navigation("Compras");
-
                     b.Navigation("Ventas");
                 });
 

@@ -66,12 +66,12 @@ public class CajaController : ControllerBase
     /// <summary>
     /// Reabrir caja del día actual
     /// </summary>
-    [HttpPost("{id}/reabrir")]
-    public async Task<IActionResult> ReabrirCaja(int id)
+    [HttpPost("reabrir")]
+    public async Task<IActionResult> ReabrirCaja()
     {
         try
         {
-            var result = await _cajaService.ReabrirCajaAsync(id);
+            var result = await _cajaService.ReabrirCajaDelDiaActualAsync();
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -122,6 +122,27 @@ public class CajaController : ControllerBase
         {
             _logger.LogError(ex, "Error al verificar caja abierta");
             return StatusCode(500, new { message = "Error al verificar caja abierta" });
+        }
+    }
+
+    /// <summary>
+    /// Obtener última caja cerrada
+    /// </summary>
+    [HttpGet("ultima-cerrada")]
+    public async Task<IActionResult> GetUltimaCajaCerrada()
+    {
+        try
+        {
+            var result = await _cajaService.GetUltimaCajaCerradaAsync();
+            if (result == null)
+                return NotFound(new { message = "No hay cajas cerradas" });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener última caja cerrada");
+            return StatusCode(500, new { message = "Error al obtener la última caja cerrada" });
         }
     }
 

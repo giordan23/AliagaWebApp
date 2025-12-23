@@ -111,6 +111,29 @@ public class ZonasController : ControllerBase
     }
 
     /// <summary>
+    /// Eliminar zona
+    /// </summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            await _zonaService.DeleteAsync(id);
+            return Ok(new { message = "Zona eliminada exitosamente" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Error al eliminar zona {ZonaId}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al eliminar zona {ZonaId}", id);
+            return StatusCode(500, new { message = "Error al eliminar la zona" });
+        }
+    }
+
+    /// <summary>
     /// Obtener clientes de una zona específica
     /// </summary>
     [HttpGet("{id}/clientes")]

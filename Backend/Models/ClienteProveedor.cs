@@ -28,6 +28,8 @@ public class ClienteProveedor
 
     public bool EsAnonimo { get; set; } = false;
 
+    public bool Eliminado { get; set; } = false;
+
     public DateTime FechaCreacion { get; set; } = DateTime.Now;
     public DateTime FechaModificacion { get; set; } = DateTime.Now;
 

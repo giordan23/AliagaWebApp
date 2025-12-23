@@ -37,7 +37,9 @@ public class ClienteService : IClienteService
     public async Task<List<ClienteProveedorResponse>> GetProveedoresAsync(int skip = 0, int take = 50, string? searchTerm = null, int? zonaId = null)
     {
         var clientes = await _clienteRepository.GetProveedoresAsync(skip, take, searchTerm, zonaId);
-        return clientes.Select(c => MapProveedorToResponse(c)).ToList();
+        var kgVendidosPorProveedor = await _clienteRepository.GetTotalKgVendidosPorProveedorAsync();
+
+        return clientes.Select(c => MapProveedorToResponse(c, kgVendidosPorProveedor)).ToList();
     }
 
     public async Task<int> GetTotalProveedoresCountAsync(string? searchTerm = null, int? zonaId = null)
@@ -105,6 +107,23 @@ public class ClienteService : IClienteService
         return MapProveedorToResponse(await _clienteRepository.GetProveedorByIdAsync(id) ?? cliente);
     }
 
+    public async Task DeleteProveedorAsync(int id)
+    {
+        var cliente = await _clienteRepository.GetProveedorByIdAsync(id);
+        if (cliente == null)
+        {
+            throw new InvalidOperationException("Cliente no encontrado");
+        }
+
+        // No permitir eliminar cliente anónimo
+        if (cliente.EsAnonimo)
+        {
+            throw new InvalidOperationException("El cliente anónimo no se puede eliminar");
+        }
+
+        await _clienteRepository.DeleteProveedorAsync(id);
+    }
+
     // Clientes Compradores
     public async Task<ClienteCompradorResponse?> GetCompradorByIdAsync(int id)
     {
@@ -148,9 +167,26 @@ public class ClienteService : IClienteService
         return MapCompradorToResponse(cliente);
     }
 
-    // Mappers
-    private ClienteProveedorResponse MapProveedorToResponse(ClienteProveedor cliente)
+    public async Task DeleteCompradorAsync(int id)
     {
+        var cliente = await _clienteRepository.GetCompradorByIdAsync(id);
+        if (cliente == null)
+        {
+            throw new InvalidOperationException("Cliente comprador no encontrado");
+        }
+
+        await _clienteRepository.DeleteCompradorAsync(id);
+    }
+
+    // Mappers
+    private ClienteProveedorResponse MapProveedorToResponse(ClienteProveedor cliente, Dictionary<int, decimal>? kgVendidosPorProveedor = null)
+    {
+        decimal totalKgVendidos = 0;
+        if (kgVendidosPorProveedor != null && kgVendidosPorProveedor.ContainsKey(cliente.Id))
+        {
+            totalKgVendidos = kgVendidosPorProveedor[cliente.Id];
+        }
+
         return new ClienteProveedorResponse
         {
             Id = cliente.Id,
@@ -162,6 +198,7 @@ public class ClienteService : IClienteService
             ZonaId = cliente.ZonaId,
             ZonaNombre = cliente.Zona?.Nombre,
             SaldoPrestamo = cliente.SaldoPrestamo,
+            TotalKgVendidos = totalKgVendidos,
             EsAnonimo = cliente.EsAnonimo,
             FechaCreacion = cliente.FechaCreacion
         };

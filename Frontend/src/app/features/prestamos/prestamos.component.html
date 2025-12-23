@@ -1,0 +1,231 @@
+<div class="prestamos-container">
+  <div class="header">
+    <h1>Gestión de Préstamos</h1>
+    <p class="subtitle">Préstamos sin interés y abonos</p>
+  </div>
+
+  <!-- Sección de Formularios -->
+  <div class="forms-section">
+    <div class="tabs">
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'prestamo'"
+        (click)="activeTab = 'prestamo'">
+        <mat-icon>monetization_on</mat-icon>
+        Registrar Préstamo
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'abono'"
+        (click)="activeTab = 'abono'">
+        <mat-icon>payment</mat-icon>
+        Registrar Abono
+      </button>
+    </div>
+
+    <!-- Formulario de Préstamo -->
+    <div class="form-container" *ngIf="activeTab === 'prestamo'">
+      <form [formGroup]="prestamoForm" (ngSubmit)="registrarPrestamo()">
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <app-cliente-autocomplete
+              label="Cliente Proveedor"
+              placeholder="Buscar por DNI o nombre..."
+              [tipoCliente]="'proveedor'"
+              [mostrarSaldo]="true"
+              [showNewButton]="false"
+              formControlName="clienteProveedorId">
+            </app-cliente-autocomplete>
+            <mat-error *ngIf="prestamoForm.get('clienteProveedorId')?.hasError('required') && prestamoForm.get('clienteProveedorId')?.touched">
+              El cliente es obligatorio
+            </mat-error>
+          </div>
+
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Monto del Préstamo</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="monto"
+                placeholder="0.00"
+                step="0.01">
+              <span matPrefix class="currency-prefix">S/&nbsp;</span>
+              <mat-error *ngIf="prestamoForm.get('monto')?.hasError('required')">
+                El monto es obligatorio
+              </mat-error>
+              <mat-error *ngIf="prestamoForm.get('monto')?.hasError('min')">
+                El monto debe ser mayor a 0
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Concepto (opcional)</mat-label>
+              <input
+                matInput
+                formControlName="concepto"
+                placeholder="Préstamo sin interés"
+                maxlength="500">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="prestamoForm.invalid || procesando">
+            <mat-icon>add</mat-icon>
+            Registrar Préstamo
+          </button>
+          <button
+            mat-button
+            type="button"
+            (click)="resetPrestamoForm()">
+            Limpiar
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Formulario de Abono -->
+    <div class="form-container" *ngIf="activeTab === 'abono'">
+      <form [formGroup]="abonoForm" (ngSubmit)="registrarAbono()">
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <app-cliente-autocomplete
+              label="Cliente Proveedor"
+              placeholder="Buscar por DNI o nombre..."
+              [tipoCliente]="'proveedor'"
+              [mostrarSaldo]="true"
+              [showNewButton]="false"
+              formControlName="clienteProveedorId">
+            </app-cliente-autocomplete>
+            <mat-error *ngIf="abonoForm.get('clienteProveedorId')?.hasError('required') && abonoForm.get('clienteProveedorId')?.touched">
+              El cliente es obligatorio
+            </mat-error>
+          </div>
+
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Monto del Abono</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="monto"
+                placeholder="0.00"
+                step="0.01">
+              <span matPrefix class="currency-prefix">S/&nbsp;</span>
+              <mat-error *ngIf="abonoForm.get('monto')?.hasError('required')">
+                El monto es obligatorio
+              </mat-error>
+              <mat-error *ngIf="abonoForm.get('monto')?.hasError('min')">
+                El monto debe ser mayor a 0
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Concepto (opcional)</mat-label>
+              <input
+                matInput
+                formControlName="concepto"
+                placeholder="Abono a préstamo"
+                maxlength="500">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            mat-raised-button
+            color="accent"
+            type="submit"
+            [disabled]="abonoForm.invalid || procesando">
+            <mat-icon>payments</mat-icon>
+            Registrar Abono
+          </button>
+          <button
+            mat-button
+            type="button"
+            (click)="resetAbonoForm()">
+            Limpiar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sección de Lista de Préstamos -->
+  <div class="lista-section">
+    <div class="lista-header">
+      <h2>Clientes con Préstamos Activos</h2>
+      <div class="lista-controls">
+        <mat-form-field appearance="outline" class="ordenar-field">
+          <mat-label>Ordenar por</mat-label>
+          <mat-select [(value)]="ordenamiento" (selectionChange)="ordenarPrestamos()">
+            <mat-option value="monto-desc">Mayor Saldo</mat-option>
+            <mat-option value="monto-asc">Menor Saldo</mat-option>
+            <mat-option value="fecha-desc">Más Reciente</mat-option>
+            <mat-option value="fecha-asc">Más Antiguo</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-raised-button (click)="cargarPrestamos()">
+          <mat-icon>refresh</mat-icon>
+          Actualizar
+        </button>
+      </div>
+    </div>
+
+    <div class="prestamos-grid" *ngIf="prestamosAgrupados.length > 0">
+      <div
+        class="prestamo-card"
+        *ngFor="let prestamo of prestamosAgrupados"
+        (click)="verDetallesPrestamo(prestamo)">
+        <div class="card-header">
+          <div class="cliente-info">
+            <h3>{{ prestamo.clienteNombre }}</h3>
+            <span class="dni">DNI: {{ prestamo.clienteDNI }}</span>
+          </div>
+          <div class="saldo-badge" [class.sin-deuda]="prestamo.saldoActual === 0">
+            {{ prestamo.saldoActual | formatoMoneda }}
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="stat">
+            <span class="label">Total Prestado:</span>
+            <span class="value prestado">{{ prestamo.totalPrestado | formatoMoneda }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Total Abonado:</span>
+            <span class="value abonado">{{ prestamo.totalAbonado | formatoMoneda }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Último Movimiento:</span>
+            <span class="value">{{ prestamo.fechaUltimoMovimiento | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="movimientos-count">
+            {{ prestamo.movimientos.length }} movimiento(s)
+          </span>
+          <mat-icon>chevron_right</mat-icon>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="prestamosAgrupados.length === 0 && !cargando">
+      <mat-icon>inbox</mat-icon>
+      <p>No hay préstamos registrados</p>
+    </div>
+
+    <div class="loading-state" *ngIf="cargando">
+      <mat-spinner></mat-spinner>
+      <p>Cargando préstamos...</p>
+    </div>
+  </div>
+</div>

@@ -40,7 +40,7 @@
               <mat-form-field appearance="outline" class="precio-input">
                 <mat-label>Nuevo Precio</mat-label>
                 <input matInput type="number" formControlName="precio" step="0.01">
-                <span matPrefix>S/&nbsp;</span>
+                <span matPrefix class="currency-prefix">S/&nbsp;</span>
                 <mat-error>{{ getErrorMessage('precio') }}</mat-error>
               </mat-form-field>
               <div class="precio-actions">

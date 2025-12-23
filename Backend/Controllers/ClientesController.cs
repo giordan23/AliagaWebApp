@@ -160,6 +160,29 @@ public class ClientesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Eliminar cliente proveedor (eliminación lógica)
+    /// </summary>
+    [HttpDelete("proveedores/{id}")]
+    public async Task<IActionResult> DeleteProveedor(int id)
+    {
+        try
+        {
+            await _clienteService.DeleteProveedorAsync(id);
+            return Ok(new { message = "Cliente eliminado exitosamente" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Error al eliminar proveedor {ClienteId}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al eliminar proveedor {ClienteId}", id);
+            return StatusCode(500, new { message = "Error al eliminar el cliente" });
+        }
+    }
+
     // ==================== CLIENTES COMPRADORES ====================
 
     /// <summary>
@@ -239,6 +262,29 @@ public class ClientesController : ControllerBase
         {
             _logger.LogError(ex, "Error inesperado al actualizar comprador {ClienteId}", id);
             return StatusCode(500, new { message = "Error al actualizar el cliente comprador" });
+        }
+    }
+
+    /// <summary>
+    /// Eliminar cliente comprador (eliminación lógica)
+    /// </summary>
+    [HttpDelete("compradores/{id}")]
+    public async Task<IActionResult> DeleteComprador(int id)
+    {
+        try
+        {
+            await _clienteService.DeleteCompradorAsync(id);
+            return Ok(new { message = "Cliente comprador eliminado exitosamente" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Error al eliminar comprador {ClienteId}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al eliminar comprador {ClienteId}", id);
+            return StatusCode(500, new { message = "Error al eliminar el cliente comprador" });
         }
     }
 }

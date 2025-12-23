@@ -11,11 +11,14 @@ public interface IClienteRepository
     Task<int> GetTotalProveedoresCountAsync(string? searchTerm = null, int? zonaId = null);
     Task<ClienteProveedor> AddProveedorAsync(ClienteProveedor cliente);
     Task UpdateProveedorAsync(ClienteProveedor cliente);
+    Task DeleteProveedorAsync(int id);
     Task<bool> ExisteDniAsync(string dni, int? excludeId = null);
+    Task<Dictionary<int, decimal>> GetTotalKgVendidosPorProveedorAsync();
 
     // Clientes Compradores
     Task<ClienteComprador?> GetCompradorByIdAsync(int id);
     Task<List<ClienteComprador>> GetCompradoresAsync();
     Task<ClienteComprador> AddCompradorAsync(ClienteComprador cliente);
     Task UpdateCompradorAsync(ClienteComprador cliente);
+    Task DeleteCompradorAsync(int id);
 }

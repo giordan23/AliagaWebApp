@@ -4,8 +4,12 @@ namespace Backend.DTOs.Requests;
 
 public class RegistrarVentaRequest
 {
-    [Required(ErrorMessage = "El cliente comprador es obligatorio")]
-    public int ClienteCompradorId { get; set; }
+    // ClienteCompradorId es opcional. Si no se proporciona, se debe proporcionar NombreClienteNuevo
+    public int? ClienteCompradorId { get; set; }
+
+    // Nombre del nuevo cliente comprador (usado solo si ClienteCompradorId es null)
+    [MaxLength(200)]
+    public string? NombreClienteNuevo { get; set; }
 
     [Required(ErrorMessage = "El producto es obligatorio")]
     public int ProductoId { get; set; }

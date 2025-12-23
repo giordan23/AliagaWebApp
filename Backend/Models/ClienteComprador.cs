@@ -10,6 +10,8 @@ public class ClienteComprador
     [MaxLength(200)]
     public string Nombre { get; set; } = string.Empty;
 
+    public bool Eliminado { get; set; } = false;
+
     public DateTime FechaCreacion { get; set; } = DateTime.Now;
     public DateTime FechaModificacion { get; set; } = DateTime.Now;
 

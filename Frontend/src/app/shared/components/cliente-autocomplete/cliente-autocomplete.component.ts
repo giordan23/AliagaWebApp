@@ -14,8 +14,9 @@ import { FormatoMonedaPipe } from '../../pipes/formato-moneda.pipe';
 
 export interface ClienteAutocomplete {
   id: number;
-  dni: string;
+  dni?: string;
   nombreCompleto?: string;
+  nombre?: string; // Para compradores
   razonSocial?: string;
   saldoPrestamo?: number;
 }
@@ -67,9 +68,12 @@ export interface ClienteAutocomplete {
           (optionSelected)="onOptionSelected($event.option.value)">
           <mat-option *ngFor="let cliente of filteredClientes$ | async" [value]="cliente">
             <div class="option-content">
-              <div class="option-main">
+              <div class="option-main" *ngIf="tipoCliente === 'proveedor'">
                 <strong>{{ cliente.dni }}</strong>
                 <span class="separator">-</span>
+                <span>{{ getNombre(cliente) }}</span>
+              </div>
+              <div class="option-main" *ngIf="tipoCliente === 'comprador'">
                 <span>{{ getNombre(cliente) }}</span>
               </div>
               <div *ngIf="mostrarSaldo && cliente.saldoPrestamo && cliente.saldoPrestamo > 0" class="option-saldo">
@@ -205,10 +209,9 @@ export class ClienteAutocompleteComponent implements OnInit, ControlValueAccesso
           const clientes = response || [];
           const terminoLower = termino.toLowerCase();
 
-          // Filtrar por DNI o razón social
+          // Filtrar por nombre (los compradores solo tienen nombre, no DNI ni RUC)
           const filtered = clientes.filter((c: any) =>
-            (c.dni && c.dni.includes(termino)) ||
-            (c.razonSocial && c.razonSocial.toLowerCase().includes(terminoLower))
+            c.nombre && c.nombre.toLowerCase().includes(terminoLower)
           );
 
           return of(filtered);
@@ -223,15 +226,20 @@ export class ClienteAutocompleteComponent implements OnInit, ControlValueAccesso
 
   displayFn = (cliente: ClienteAutocomplete | null): string => {
     if (!cliente) return '';
-    return this.tipoCliente === 'proveedor'
-      ? `${cliente.dni} - ${cliente.nombreCompleto}`
-      : `${cliente.dni || ''} - ${cliente.razonSocial}`;
+    if (this.tipoCliente === 'proveedor') {
+      return `${cliente.dni} - ${cliente.nombreCompleto}`;
+    } else {
+      // Compradores solo tienen nombre
+      return cliente.nombre || '';
+    }
   };
 
   getNombre(cliente: ClienteAutocomplete): string {
-    return this.tipoCliente === 'proveedor'
-      ? (cliente.nombreCompleto || '')
-      : (cliente.razonSocial || '');
+    if (this.tipoCliente === 'proveedor') {
+      return cliente.nombreCompleto || '';
+    } else {
+      return cliente.nombre || '';
+    }
   }
 
   onOptionSelected(cliente: ClienteAutocomplete): void {

@@ -8,7 +8,7 @@ public class VentaResponse
     public string ClienteRUC { get; set; } = string.Empty;
     public int ProductoId { get; set; }
     public string ProductoNombre { get; set; } = string.Empty;
-    public int CajaId { get; set; }
+    public int? CajaId { get; set; }
     public decimal PesoNeto { get; set; }
     public decimal PrecioPorKg { get; set; }
     public decimal MontoTotal { get; set; }

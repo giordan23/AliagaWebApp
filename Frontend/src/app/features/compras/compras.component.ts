@@ -159,7 +159,7 @@ export class ComprasComponent implements OnInit {
     const dialogRef = this.dialog.open(RegistrarCompraDialogComponent, {
       width: '800px',
       maxHeight: '90vh',
-      disableClose: true,
+      disableClose: false,
       data: { productos: this.productos }
     });
 

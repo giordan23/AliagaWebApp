@@ -1,0 +1,257 @@
+<div class="container">
+  <div class="header">
+    <h1>Gestión de Clientes Proveedores</h1>
+    <button class="btn btn-primary" (click)="abrirModalNuevoCliente()">
+      + Nuevo Cliente
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-card">
+    <div class="filters-grid">
+      <div class="form-group">
+        <label>Buscar por DNI o Nombre</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="searchTerm"
+          (keyup.enter)="buscar()"
+          placeholder="Ingrese DNI o nombre...">
+      </div>
+
+      <div class="form-group">
+        <label>Filtrar por Zona</label>
+        <select class="form-control" [(ngModel)]="selectedZonaId" (change)="filtrarPorZona()">
+          <option [ngValue]="null">Todas las zonas</option>
+          <option *ngFor="let zona of zonas" [ngValue]="zona.id">{{ zona.nombre }}</option>
+        </select>
+      </div>
+
+      <div class="form-group buttons-group">
+        <button class="btn btn-secondary" (click)="buscar()">Buscar</button>
+        <button class="btn btn-outline" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de clientes -->
+  <div class="table-card">
+    <div *ngIf="loading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Cargando clientes...</p>
+    </div>
+
+    <div *ngIf="!loading && clientes.length === 0" class="empty-state">
+      <p>No se encontraron clientes</p>
+    </div>
+
+    <table *ngIf="!loading && clientes.length > 0" class="table">
+      <thead>
+        <tr>
+          <th>DNI</th>
+          <th>Nombre Completo</th>
+          <th>Teléfono</th>
+          <th>Zona</th>
+          <th>Saldo Préstamo</th>
+          <th>Kg Vendidos</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let cliente of clientes" [class.anonimo]="cliente.esAnonimo">
+          <td>{{ cliente.dni }}</td>
+          <td>
+            <strong>{{ cliente.nombreCompleto }}</strong>
+            <span *ngIf="cliente.esAnonimo" class="badge badge-info">Anónimo</span>
+          </td>
+          <td>{{ cliente.telefono || '-' }}</td>
+          <td>{{ cliente.zonaNombre || '-' }}</td>
+          <td>
+            <span
+              *ngIf="cliente.saldoPrestamo > 0"
+              class="saldo-link"
+              (click)="verPrestamos(cliente)"
+              title="Ver préstamos">
+              {{ cliente.saldoPrestamo | formatoMoneda }}
+            </span>
+            <span *ngIf="cliente.saldoPrestamo === 0" class="saldo-cero">
+              S/ 0.00
+            </span>
+          </td>
+          <td>{{ cliente.totalKgVendidos | number:'1.1-1' }} kg</td>
+          <td>
+            <button
+              class="btn btn-sm btn-edit"
+              (click)="editarCliente(cliente)"
+              [disabled]="cliente.esAnonimo"
+              title="Editar cliente">
+              ✏️ Editar
+            </button>
+            <button
+              class="btn btn-sm btn-delete"
+              (click)="eliminarCliente(cliente)"
+              [disabled]="cliente.esAnonimo"
+              title="Eliminar cliente">
+              🗑️ Eliminar
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal de nuevo cliente -->
+<div class="modal-overlay" *ngIf="showNuevoModal" (click)="cerrarModalNuevo()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Nuevo Cliente Proveedor</h2>
+      <button class="close-btn" (click)="cerrarModalNuevo()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>DNI *</label>
+        <div class="dni-group">
+          <input
+            type="text"
+            class="form-control dni-input"
+            [(ngModel)]="nuevoCliente.dni"
+            maxlength="8"
+            pattern="[0-9]{8}"
+            placeholder="Ingrese DNI de 8 dígitos">
+          <button
+            class="btn btn-reniec"
+            (click)="consultarReniec()"
+            [disabled]="consultandoReniec || nuevoCliente.dni.length !== 8">
+            <span *ngIf="!consultandoReniec">🔍 Consultar RENIEC</span>
+            <span *ngIf="consultandoReniec">⏳ Consultando...</span>
+          </button>
+        </div>
+        <small class="text-muted">Ingrese el DNI y presione "Consultar RENIEC" para obtener los datos automáticamente</small>
+      </div>
+
+      <div class="form-group">
+        <label>Nombre Completo *</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="nuevoCliente.nombreCompleto"
+          [disabled]="!nombreEditable"
+          required
+          maxlength="200">
+        <small class="text-muted" *ngIf="reniecExitoso">✓ Nombre obtenido de RENIEC</small>
+        <small class="text-muted" *ngIf="!reniecExitoso && !nombreEditable">Nombre no editable</small>
+      </div>
+
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="nuevoCliente.telefono"
+          maxlength="20">
+      </div>
+
+      <div class="form-group">
+        <label>Dirección</label>
+        <textarea
+          class="form-control"
+          [(ngModel)]="nuevoCliente.direccion"
+          rows="3"
+          maxlength="300"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Fecha de Nacimiento</label>
+        <input
+          type="date"
+          class="form-control"
+          [(ngModel)]="nuevoCliente.fechaNacimiento">
+      </div>
+
+      <div class="form-group">
+        <label>Zona</label>
+        <select class="form-control" [(ngModel)]="nuevoCliente.zonaId">
+          <option [ngValue]="null">Sin zona asignada</option>
+          <option *ngFor="let zona of zonas" [ngValue]="zona.id">{{ zona.nombre }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="cerrarModalNuevo()">Cancelar</button>
+      <button class="btn btn-primary" (click)="crearCliente()">Crear Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de edición -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Editar Cliente</h2>
+      <button class="close-btn" (click)="cerrarModal()">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="clienteEditando">
+      <div class="form-group">
+        <label>DNI</label>
+        <input
+          type="text"
+          class="form-control"
+          [value]="clienteEditando.dni"
+          disabled>
+        <small class="text-muted">El DNI no se puede modificar</small>
+      </div>
+
+      <div class="form-group">
+        <label>Nombre Completo *</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="clienteEditando.nombreCompleto"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="clienteEditando.telefono"
+          maxlength="20">
+      </div>
+
+      <div class="form-group">
+        <label>Dirección</label>
+        <textarea
+          class="form-control"
+          [(ngModel)]="clienteEditando.direccion"
+          rows="3"
+          maxlength="300"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Fecha de Nacimiento</label>
+        <input
+          type="date"
+          class="form-control"
+          [(ngModel)]="clienteEditando.fechaNacimiento">
+      </div>
+
+      <div class="form-group">
+        <label>Zona</label>
+        <select class="form-control" [(ngModel)]="clienteEditando.zonaId">
+          <option [ngValue]="null">Sin zona asignada</option>
+          <option *ngFor="let zona of zonas" [ngValue]="zona.id">{{ zona.nombre }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarCliente()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class MigracionInicial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -42,6 +42,7 @@ namespace Backend.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Nombre = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Eliminado = table.Column<bool>(type: "INTEGER", nullable: false),
                     FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false),
                     FechaModificacion = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
@@ -135,7 +136,7 @@ namespace Backend.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     ClienteCompradorId = table.Column<int>(type: "INTEGER", nullable: false),
                     ProductoId = table.Column<int>(type: "INTEGER", nullable: false),
-                    CajaId = table.Column<int>(type: "INTEGER", nullable: false),
+                    CajaId = table.Column<int>(type: "INTEGER", nullable: true),
                     PesoBruto = table.Column<decimal>(type: "TEXT", precision: 18, scale: 1, nullable: false),
                     PesoNeto = table.Column<decimal>(type: "TEXT", precision: 18, scale: 1, nullable: false),
                     PrecioPorKg = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
@@ -182,6 +183,7 @@ namespace Backend.Migrations
                     ZonaId = table.Column<int>(type: "INTEGER", nullable: true),
                     SaldoPrestamo = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
                     EsAnonimo = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Eliminado = table.Column<bool>(type: "INTEGER", nullable: false),
                     FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false),
                     FechaModificacion = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
@@ -204,16 +206,9 @@ namespace Backend.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     NumeroVoucher = table.Column<string>(type: "TEXT", maxLength: 8, nullable: false),
                     ClienteProveedorId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ProductoId = table.Column<int>(type: "INTEGER", nullable: false),
                     CajaId = table.Column<int>(type: "INTEGER", nullable: false),
-                    NivelSecado = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    Calidad = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    TipoPesado = table.Column<int>(type: "INTEGER", nullable: false),
-                    PesoBruto = table.Column<decimal>(type: "TEXT", precision: 18, scale: 1, nullable: false),
-                    DescuentoKg = table.Column<decimal>(type: "TEXT", precision: 18, scale: 1, nullable: false),
-                    PesoNeto = table.Column<decimal>(type: "TEXT", precision: 18, scale: 1, nullable: false),
-                    PrecioPorKg = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
-                    MontoTotal = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    PesoTotal = table.Column<decimal>(type: "decimal(18,1)", precision: 18, scale: 1, nullable: false),
+                    MontoTotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     FechaCompra = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Editada = table.Column<bool>(type: "INTEGER", nullable: false),
                     FechaEdicion = table.Column<DateTime>(type: "TEXT", nullable: true),
@@ -232,12 +227,6 @@ namespace Backend.Migrations
                         name: "FK_Compras_ClientesProveedores_ClienteProveedorId",
                         column: x => x.ClienteProveedorId,
                         principalTable: "ClientesProveedores",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Compras_Productos_ProductoId",
-                        column: x => x.ProductoId,
-                        principalTable: "Productos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -274,10 +263,45 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "DetallesCompra",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    CompraId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProductoId = table.Column<int>(type: "INTEGER", nullable: false),
+                    NivelSecado = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    Calidad = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    TipoPesado = table.Column<int>(type: "INTEGER", nullable: false),
+                    PesoBruto = table.Column<decimal>(type: "decimal(18,1)", precision: 18, scale: 1, nullable: false),
+                    DescuentoKg = table.Column<decimal>(type: "decimal(18,1)", precision: 18, scale: 1, nullable: false),
+                    PesoNeto = table.Column<decimal>(type: "decimal(18,1)", precision: 18, scale: 1, nullable: false),
+                    PrecioPorKg = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DetallesCompra", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DetallesCompra_Compras_CompraId",
+                        column: x => x.CompraId,
+                        principalTable: "Compras",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DetallesCompra_Productos_ProductoId",
+                        column: x => x.ProductoId,
+                        principalTable: "Productos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
             migrationBuilder.InsertData(
                 table: "ClientesProveedores",
-                columns: new[] { "Id", "DNI", "Direccion", "EsAnonimo", "FechaCreacion", "FechaModificacion", "FechaNacimiento", "NombreCompleto", "SaldoPrestamo", "Telefono", "ZonaId" },
-                values: new object[] { 1, "00000000", null, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Anónimo", 0m, null, null });
+                columns: new[] { "Id", "DNI", "Direccion", "Eliminado", "EsAnonimo", "FechaCreacion", "FechaModificacion", "FechaNacimiento", "NombreCompleto", "SaldoPrestamo", "Telefono", "ZonaId" },
+                values: new object[] { 1, "00000000", null, false, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Anónimo", 0m, null, null });
 
             migrationBuilder.InsertData(
                 table: "ConfiguracionNegocio",
@@ -329,8 +353,13 @@ namespace Backend.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Compras_ProductoId",
-                table: "Compras",
+                name: "IX_DetallesCompra_CompraId",
+                table: "DetallesCompra",
+                column: "CompraId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DetallesCompra_ProductoId",
+                table: "DetallesCompra",
                 column: "ProductoId");
 
             migrationBuilder.CreateIndex(
@@ -374,10 +403,10 @@ namespace Backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Compras");
+                name: "ConfiguracionNegocio");
 
             migrationBuilder.DropTable(
-                name: "ConfiguracionNegocio");
+                name: "DetallesCompra");
 
             migrationBuilder.DropTable(
                 name: "MovimientosCaja");
@@ -389,16 +418,19 @@ namespace Backend.Migrations
                 name: "Ventas");
 
             migrationBuilder.DropTable(
-                name: "ClientesProveedores");
-
-            migrationBuilder.DropTable(
-                name: "Cajas");
+                name: "Compras");
 
             migrationBuilder.DropTable(
                 name: "ClientesCompradores");
 
             migrationBuilder.DropTable(
                 name: "Productos");
+
+            migrationBuilder.DropTable(
+                name: "Cajas");
+
+            migrationBuilder.DropTable(
+                name: "ClientesProveedores");
 
             migrationBuilder.DropTable(
                 name: "Zonas");

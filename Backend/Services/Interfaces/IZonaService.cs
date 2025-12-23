@@ -10,5 +10,6 @@ public interface IZonaService
     Task<int> GetTotalCountAsync();
     Task<ZonaResponse> CreateAsync(CrearZonaRequest request);
     Task<ZonaResponse> UpdateAsync(int id, ActualizarZonaRequest request);
+    Task DeleteAsync(int id);
     Task<List<ClienteProveedorResponse>> GetClientesByZonaAsync(int zonaId);
 }

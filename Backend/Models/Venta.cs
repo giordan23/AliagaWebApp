@@ -12,8 +12,8 @@ public class Venta
     [Required]
     public int ProductoId { get; set; }
 
-    [Required]
-    public int CajaId { get; set; }
+    // CajaId es opcional ya que las ventas son registros históricos independientes de la caja
+    public int? CajaId { get; set; }
 
     [Required]
     public decimal PesoBruto { get; set; }
@@ -38,5 +38,5 @@ public class Venta
     // Navigation properties
     public ClienteComprador ClienteComprador { get; set; } = null!;
     public Producto Producto { get; set; } = null!;
-    public Caja Caja { get; set; } = null!;
+    public Caja? Caja { get; set; }
 }

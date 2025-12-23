@@ -27,6 +27,10 @@ export class CajaService {
     return this.http.get(`${this.apiUrl}/actual`);
   }
 
+  obtenerUltimaCajaCerrada(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/ultima-cerrada`);
+  }
+
   obtenerHistorial(page: number = 1, pageSize: number = 50): Observable<any> {
     return this.http.get(`${this.apiUrl}/historial`, {
       params: { page: page.toString(), pageSize: pageSize.toString() }
@@ -37,11 +41,11 @@ export class CajaService {
     return this.http.get(`${this.apiUrl}/${cajaId}`);
   }
 
-  registrarMovimiento(cajaId: number, tipoMovimiento: number, monto: number, concepto: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${cajaId}/movimiento`, {
+  registrarMovimiento(tipoMovimiento: number, monto: number, concepto: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/movimiento`, {
       tipoMovimiento,
       monto,
-      concepto
+      descripcion: concepto
     });
   }
 }

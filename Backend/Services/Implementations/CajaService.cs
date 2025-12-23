@@ -63,12 +63,6 @@ public class CajaService : ICajaService
             throw new InvalidOperationException("No hay caja abierta para cerrar");
         }
 
-        // Solo se puede cerrar caja del día actual
-        if (cajaAbierta.Fecha.Date != DateTime.Today)
-        {
-            throw new InvalidOperationException("Solo se puede cerrar la caja del día actual");
-        }
-
         // Calcular saldo esperado
         var totales = await CalcularTotalesCajaAsync(cajaAbierta.Id);
         cajaAbierta.MontoEsperado = CalculosHelper.CalcularSaldoEsperado(
@@ -122,13 +116,52 @@ public class CajaService : ICajaService
         return await MapToCajaResumenAsync(caja);
     }
 
+    public async Task<CajaResumenResponse?> ReabrirCajaDelDiaActualAsync()
+    {
+        var hoy = DateTime.Today;
+        var cajaHoy = await _cajaRepository.GetByFechaAsync(hoy);
+
+        if (cajaHoy == null)
+        {
+            throw new InvalidOperationException("No hay caja registrada para el día actual");
+        }
+
+        // Verificar que esté cerrada
+        if (cajaHoy.Estado == EstadoCaja.Abierta)
+        {
+            throw new InvalidOperationException("La caja ya está abierta");
+        }
+
+        // Reabrir
+        cajaHoy.Estado = EstadoCaja.Abierta;
+        cajaHoy.FechaCierre = null;
+        cajaHoy.UsuarioCierre = null;
+        cajaHoy.ArqueoReal = null;
+        cajaHoy.Diferencia = 0;
+
+        await _cajaRepository.UpdateAsync(cajaHoy);
+        return await MapToCajaResumenAsync(cajaHoy);
+    }
+
     public async Task<CajaResumenResponse?> GetCajaActualAsync()
     {
-        var caja = await _cajaRepository.GetCajaAbiertaAsync();
-        if (caja == null)
-            return null;
+        var hoy = DateTime.Today;
 
-        return await MapToCajaResumenAsync(caja);
+        // Primero buscar si hay caja del día actual (abierta o cerrada)
+        var cajaHoy = await _cajaRepository.GetByFechaAsync(hoy);
+        if (cajaHoy != null)
+        {
+            return await MapToCajaResumenAsync(cajaHoy);
+        }
+
+        // Si no hay caja del día actual, buscar caja abierta de días anteriores
+        var cajaAbierta = await _cajaRepository.GetCajaAbiertaAsync();
+        if (cajaAbierta != null)
+        {
+            return await MapToCajaResumenAsync(cajaAbierta);
+        }
+
+        return null;
     }
 
     public async Task<CajaDetalleResponse?> GetCajaDetalleAsync(int cajaId)
@@ -255,6 +288,19 @@ public class CajaService : ICajaService
     {
         var caja = await _cajaRepository.GetCajaAbiertaAsync();
         return caja != null;
+    }
+
+    public async Task<CajaResumenResponse?> GetUltimaCajaCerradaAsync()
+    {
+        var ultimaCajaCerrada = await _context.Cajas
+            .Where(c => c.Estado != EstadoCaja.Abierta)
+            .OrderByDescending(c => c.Fecha)
+            .FirstOrDefaultAsync();
+
+        if (ultimaCajaCerrada == null)
+            return null;
+
+        return await MapToCajaResumenAsync(ultimaCajaCerrada);
     }
 
     // Métodos privados

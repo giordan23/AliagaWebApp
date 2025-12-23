@@ -56,6 +56,16 @@ public class ZonaRepository : IZonaRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        var zona = await _context.Zonas.FindAsync(id);
+        if (zona != null)
+        {
+            _context.Zonas.Remove(zona);
+            await _context.SaveChangesAsync();
+        }
+    }
+
     public async Task<bool> ExisteNombreAsync(string nombre, int? excludeId = null)
     {
         var query = _context.Zonas

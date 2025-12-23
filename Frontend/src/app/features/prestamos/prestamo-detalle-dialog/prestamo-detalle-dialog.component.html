@@ -1,0 +1,112 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-content">
+      <h2 mat-dialog-title>Detalles del Préstamo</h2>
+      <button mat-icon-button (click)="cerrar()" class="close-button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <!-- Información del Cliente -->
+    <div class="cliente-section">
+      <div class="cliente-header">
+        <mat-icon>person</mat-icon>
+        <div class="cliente-info">
+          <h3>{{ data.clienteNombre }}</h3>
+          <p>DNI: {{ data.clienteDNI }}</p>
+        </div>
+      </div>
+
+      <div class="resumen-grid">
+        <div class="resumen-card saldo">
+          <div class="card-label">Saldo Actual</div>
+          <div class="card-value" [class.sin-deuda]="data.saldoActual === 0">
+            {{ data.saldoActual | formatoMoneda }}
+          </div>
+        </div>
+
+        <div class="resumen-card prestado">
+          <div class="card-label">Total Prestado</div>
+          <div class="card-value">{{ data.totalPrestado | formatoMoneda }}</div>
+        </div>
+
+        <div class="resumen-card abonado">
+          <div class="card-label">Total Abonado</div>
+          <div class="card-value">{{ data.totalAbonado | formatoMoneda }}</div>
+        </div>
+
+        <div class="resumen-card fecha">
+          <div class="card-label">Último Movimiento</div>
+          <div class="card-value fecha-value">
+            {{ data.fechaUltimoMovimiento | date:'dd/MM/yyyy HH:mm' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historial de Movimientos -->
+    <div class="movimientos-section">
+      <h3 class="section-title">
+        <mat-icon>history</mat-icon>
+        Historial de Movimientos ({{ data.movimientos.length }})
+      </h3>
+
+      <div class="table-container">
+        <table mat-table [dataSource]="data.movimientos" class="movimientos-table">
+          <!-- Columna Fecha -->
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef>Fecha</th>
+            <td mat-cell *matCellDef="let movimiento">
+              {{ movimiento.fechaMovimiento | date:'dd/MM/yyyy HH:mm' }}
+            </td>
+          </ng-container>
+
+          <!-- Columna Tipo -->
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let movimiento">
+              <span class="tipo-badge" [ngClass]="getTipoMovimientoClass(movimiento.tipoMovimiento)">
+                {{ getTipoMovimientoLabel(movimiento.tipoMovimiento) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Columna Monto -->
+          <ng-container matColumnDef="monto">
+            <th mat-header-cell *matHeaderCellDef>Monto</th>
+            <td mat-cell *matCellDef="let movimiento">
+              <span [class]="getTipoMovimientoClass(movimiento.tipoMovimiento)">
+                {{ movimiento.monto | formatoMoneda }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Columna Saldo Después -->
+          <ng-container matColumnDef="saldoDespues">
+            <th mat-header-cell *matHeaderCellDef>Saldo Después</th>
+            <td mat-cell *matCellDef="let movimiento">
+              <strong>{{ movimiento.saldoDespues | formatoMoneda }}</strong>
+            </td>
+          </ng-container>
+
+          <!-- Columna Descripción -->
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef>Descripción</th>
+            <td mat-cell *matCellDef="let movimiento">
+              {{ movimiento.descripcion || '-' }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-raised-button (click)="cerrar()">Cerrar</button>
+  </mat-dialog-actions>
+</div>

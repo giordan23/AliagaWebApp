@@ -51,7 +51,7 @@ export class ZonasComponent implements OnInit {
     this.loading = true;
     this.zonasService.obtenerTodas().subscribe({
       next: (response) => {
-        this.zonas = response.data || [];
+        this.zonas = response.items || [];
         this.loading = false;
       },
       error: (error) => {
@@ -62,10 +62,27 @@ export class ZonasComponent implements OnInit {
     });
   }
 
+  eliminarZona(zona: any): void {
+    if (!confirm(`¿Está seguro de eliminar la zona "${zona.nombre}"?`)) {
+      return;
+    }
+
+    this.zonasService.eliminar(zona.id).subscribe({
+      next: () => {
+        this.cargarZonas();
+        this.mostrarAlerta('success', 'Zona eliminada exitosamente');
+      },
+      error: (error) => {
+        console.error('Error al eliminar zona:', error);
+        this.mostrarAlerta('error', error.error?.message || 'Error al eliminar la zona');
+      }
+    });
+  }
+
   abrirFormularioNueva(): void {
     const dialogRef = this.dialog.open(ZonaFormDialogComponent, {
       width: '600px',
-      disableClose: true,
+      disableClose: false,
       data: null
     });
 
@@ -80,7 +97,7 @@ export class ZonasComponent implements OnInit {
   abrirFormularioEditar(zona: any): void {
     const dialogRef = this.dialog.open(ZonaFormDialogComponent, {
       width: '600px',
-      disableClose: true,
+      disableClose: false,
       data: zona
     });
 

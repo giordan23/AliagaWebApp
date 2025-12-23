@@ -74,6 +74,9 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("TEXT");
 
@@ -104,6 +107,9 @@ namespace Backend.Migrations
                     b.Property<string>("Direccion")
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("EsAnonimo")
                         .HasColumnType("INTEGER");
@@ -147,6 +153,7 @@ namespace Backend.Migrations
                         {
                             Id = 1,
                             DNI = "00000000",
+                            Eliminado = false,
                             EsAnonimo = true,
                             FechaCreacion = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             FechaModificacion = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -476,7 +483,7 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("CajaId")
+                    b.Property<int?>("CajaId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ClienteCompradorId")
@@ -632,8 +639,7 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.Caja", "Caja")
                         .WithMany("Ventas")
                         .HasForeignKey("CajaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Backend.Models.ClienteComprador", "ClienteComprador")
                         .WithMany("Ventas")

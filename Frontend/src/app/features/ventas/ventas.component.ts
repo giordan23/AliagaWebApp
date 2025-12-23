@@ -12,7 +12,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { VentasService } from '../../core/services/ventas.service';
-import { CajaService } from '../../core/services/caja.service';
 import { ProductosService } from '../../core/services/productos.service';
 import { FormatoMonedaPipe } from '../../shared/pipes/formato-moneda.pipe';
 import { FormatoFechaPipe } from '../../shared/pipes/formato-fecha.pipe';
@@ -35,15 +34,9 @@ import { CustomValidators } from '../../core/validators/custom-validators';
       </div>
 
       <div class="actions-bar">
-        <button mat-raised-button color="primary" (click)="abrirDialogoRegistrar()" [disabled]="!cajaAbierta">
+        <button mat-raised-button color="primary" (click)="abrirDialogoRegistrar()">
           <mat-icon>add</mat-icon> Nueva Venta
         </button>
-        <mat-chip-set *ngIf="!cajaAbierta">
-          <mat-chip class="warning-chip">
-            <mat-icon>warning</mat-icon>
-            Caja cerrada
-          </mat-chip>
-        </mat-chip-set>
       </div>
 
       <mat-card class="filters-card">
@@ -167,13 +160,11 @@ import { CustomValidators } from '../../core/validators/custom-validators';
 export class VentasComponent implements OnInit {
   ventas: any[] = [];
   productos: any[] = [];
-  cajaAbierta: boolean = false;
   filtrosForm: FormGroup;
   columnasVentas: string[] = ['fecha', 'cliente', 'producto', 'pesoNeto', 'precio', 'monto', 'estado', 'acciones'];
 
   constructor(
     private ventasService: VentasService,
-    private cajaService: CajaService,
     private productosService: ProductosService,
     private dialog: MatDialog,
     private fb: FormBuilder
@@ -182,16 +173,8 @@ export class VentasComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.verificarCaja();
     this.cargarProductos();
     this.cargarVentas();
-  }
-
-  verificarCaja(): void {
-    this.cajaService.obtenerCajaActual().subscribe({
-      next: (data) => this.cajaAbierta = data && data.id && data.estado === 0,
-      error: () => this.cajaAbierta = false
-    });
   }
 
   cargarProductos(): void {
@@ -224,7 +207,7 @@ export class VentasComponent implements OnInit {
   abrirDialogoRegistrar(): void {
     const dialogRef = this.dialog.open(RegistrarVentaDialogComponent, {
       width: '700px',
-      disableClose: true,
+      disableClose: false,
       data: { productos: this.productos }
     });
     dialogRef.afterClosed().subscribe(result => {
@@ -240,7 +223,7 @@ export class VentasComponent implements OnInit {
   editarVenta(venta: any): void {
     const dialogRef = this.dialog.open(RegistrarVentaDialogComponent, {
       width: '700px',
-      disableClose: true,
+      disableClose: false,
       data: { productos: this.productos, venta: venta }
     });
     dialogRef.afterClosed().subscribe(result => {
@@ -281,7 +264,8 @@ export class VentasComponent implements OnInit {
           <app-cliente-autocomplete
             formControlName="clienteCompradorId"
             [tipoCliente]="'comprador'"
-            placeholder="Buscar comprador">
+            placeholder="Buscar o escribir nombre del comprador"
+            (searchTextChange)="onClienteTextChange($event)">
           </app-cliente-autocomplete>
         </div>
 
@@ -333,7 +317,7 @@ export class VentasComponent implements OnInit {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="onConfirm()" [disabled]="!form.valid">
+      <button mat-raised-button color="primary" (click)="onConfirm()" [disabled]="!isFormValid()">
         {{ esEdicion ? 'Guardar' : 'Registrar' }}
       </button>
     </mat-dialog-actions>
@@ -356,6 +340,7 @@ export class RegistrarVentaDialogComponent implements OnInit {
   productos: any[] = [];
   esEdicion: boolean = false;
   montoTotal: number = 0;
+  nombreClienteTexto: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -365,7 +350,7 @@ export class RegistrarVentaDialogComponent implements OnInit {
     this.productos = data.productos || [];
     this.esEdicion = !!data.venta;
     this.form = this.fb.group({
-      clienteCompradorId: ['', Validators.required],
+      clienteCompradorId: [''], // No requerido - puede ser ID o texto
       productoId: ['', Validators.required],
       pesoBruto: ['', [Validators.required, CustomValidators.peso()]],
       precioPorKg: ['', [Validators.required, CustomValidators.monto()]]
@@ -378,6 +363,10 @@ export class RegistrarVentaDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {}
+
+  onClienteTextChange(texto: string): void {
+    this.nombreClienteTexto = texto;
+  }
 
   onProductoChange(): void {
     const productoId = this.form.get('productoId')?.value;
@@ -394,17 +383,41 @@ export class RegistrarVentaDialogComponent implements OnInit {
     this.montoTotal = peso * precio;
   }
 
+  isFormValid(): boolean {
+    // El formulario es válido si tiene producto, peso y precio válidos
+    // El cliente puede ser un ID (seleccionado) o texto (nuevo cliente)
+    const tieneProducto = !!this.form.get('productoId')?.value;
+    const tienePeso = this.form.get('pesoBruto')?.valid ?? false;
+    const tienePrecio = this.form.get('precioPorKg')?.valid ?? false;
+    const tieneCliente = !!this.form.get('clienteCompradorId')?.value || !!this.nombreClienteTexto.trim();
+
+    return tieneProducto && tienePeso && tienePrecio && tieneCliente && this.montoTotal > 0;
+  }
+
   onCancel(): void {
     this.dialogRef.close();
   }
 
   onConfirm(): void {
-    if (this.form.valid && this.montoTotal > 0) {
-      const data = {
-        ...this.form.value,
+    if (this.isFormValid()) {
+      const clienteId = this.form.get('clienteCompradorId')?.value;
+
+      const data: any = {
+        productoId: this.form.get('productoId')?.value,
         pesoNeto: parseFloat(this.form.get('pesoBruto')?.value),
+        precioPorKg: parseFloat(this.form.get('precioPorKg')?.value),
         montoTotal: this.montoTotal
       };
+
+      // Si hay un ID de cliente seleccionado, usarlo
+      if (clienteId) {
+        data.clienteCompradorId = clienteId;
+      }
+      // Si no hay ID pero hay texto, enviar el nombre del nuevo cliente
+      else if (this.nombreClienteTexto.trim()) {
+        data.nombreClienteNuevo = this.nombreClienteTexto.trim();
+      }
+
       this.dialogRef.close(data);
     }
   }

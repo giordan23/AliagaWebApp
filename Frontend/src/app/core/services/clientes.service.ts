@@ -44,6 +44,10 @@ export class ClientesService {
     return this.http.put(`${this.apiUrl}/proveedores/${id}`, proveedor);
   }
 
+  eliminarProveedor(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/proveedores/${id}`);
+  }
+
   consultarReniec(dni: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/reniec/${dni}`);
   }
@@ -67,5 +71,9 @@ export class ClientesService {
 
   actualizarComprador(id: number, comprador: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/compradores/${id}`, comprador);
+  }
+
+  eliminarComprador(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/compradores/${id}`);
   }
 }

@@ -11,6 +11,7 @@ public class ClienteProveedorResponse
     public int? ZonaId { get; set; }
     public string? ZonaNombre { get; set; }
     public decimal SaldoPrestamo { get; set; }
+    public decimal TotalKgVendidos { get; set; }
     public bool EsAnonimo { get; set; }
     public DateTime FechaCreacion { get; set; }
 }
