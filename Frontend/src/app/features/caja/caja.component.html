@@ -106,6 +106,44 @@
               <span class="value">{{ cajaActual.fechaApertura | formatoFecha: true }}</span>
             </div>
           </div>
+
+          <div class="caja-info-group">
+            <div class="info-item">
+              <span class="label">Monto Compras:</span>
+              <span class="value money egreso">{{ cajaActual.totalCompras | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Monto Ventas:</span>
+              <span class="value money ingreso">{{ cajaActual.totalVentas | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Monto Préstamos:</span>
+              <span class="value money egreso">{{ cajaActual.totalPrestamos | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Monto Abonos:</span>
+              <span class="value money ingreso">{{ cajaActual.totalAbonos | formatoMoneda }}</span>
+            </div>
+          </div>
+
+          <div class="caja-info-group">
+            <div class="info-item">
+              <span class="label">Monto Inyecciones:</span>
+              <span class="value money ingreso">{{ cajaActual.totalInyecciones | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Total Ingresos (sin inyecciones):</span>
+              <span class="value money ingreso">{{ cajaActual.totalIngresosSinInyecciones | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Monto Retiros:</span>
+              <span class="value money egreso">{{ cajaActual.totalRetiros | formatoMoneda }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Monto Gastos Operativos:</span>
+              <span class="value money egreso">{{ cajaActual.totalGastos | formatoMoneda }}</span>
+            </div>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>
@@ -186,7 +224,20 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="columnasMovimientos"></tr>
-            <tr mat-row *matRowDef="let row; columns: columnasMovimientos;"></tr>
+
+            <!-- Separador entre cajas diferentes -->
+            <ng-container *matRowDef="let row; columns: columnasMovimientos; let i = index">
+              <tr *ngIf="i > 0 && movimientos[i].cajaId !== movimientos[i-1].cajaId" class="separator-row">
+                <td [attr.colspan]="columnasMovimientos.length">
+                  <div class="caja-separator">
+                    <span class="separator-line"></span>
+                    <span class="separator-text">Caja del {{ movimientos[i].fechaCaja | formatoFecha }}</span>
+                    <span class="separator-line"></span>
+                  </div>
+                </td>
+              </tr>
+              <tr mat-row></tr>
+            </ng-container>
 
             <!-- Empty State -->
             <tr class="mat-row" *matNoDataRow>

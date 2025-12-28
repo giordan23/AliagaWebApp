@@ -5,6 +5,11 @@ using Backend.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using ESCPOS_NET;
+using ESCPOS_NET.Emitters;
+using ESCPOS_NET.Utilities;
+using System.Runtime.InteropServices;
+using System.Drawing.Printing;
 
 namespace Backend.Services.Implementations;
 
@@ -14,6 +19,36 @@ public class VoucherService : IVoucherService
     private readonly IConfiguration _configuration;
     private readonly ILogger<VoucherService> _logger;
     private const int ANCHO_VOUCHER = 32; // Caracteres para impresora 80mm
+
+    // Windows API para enviar datos RAW a impresoras
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    private class DOCINFOA
+    {
+        [MarshalAs(UnmanagedType.LPStr)] public string? pDocName;
+        [MarshalAs(UnmanagedType.LPStr)] public string? pOutputFile;
+        [MarshalAs(UnmanagedType.LPStr)] public string? pDataType;
+    }
+
+    [DllImport("winspool.Drv", EntryPoint = "OpenPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPStr)] string szPrinter, out IntPtr hPrinter, IntPtr pd);
+
+    [DllImport("winspool.Drv", EntryPoint = "ClosePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool ClosePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "StartDocPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool StartDocPrinter(IntPtr hPrinter, int level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOA di);
+
+    [DllImport("winspool.Drv", EntryPoint = "EndDocPrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool EndDocPrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "StartPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool StartPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "EndPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool EndPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    private static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
 
     public VoucherService(
         ICompraRepository compraRepository,
@@ -74,54 +109,41 @@ public class VoucherService : IVoucherService
         return await GenerarYImprimirVoucherAsync(compra, esDuplicado: true);
     }
 
+    public string EspacioEntre(string izquierda, string derecha, int anchoTotal = 32)
+    {
+        int espacios = anchoTotal - izquierda.Length - derecha.Length;
+        if (espacios < 1) espacios = 1; // Al menos un espacio
+        return izquierda + new string(' ', espacios) + derecha;
+    }
+
     public string GenerarContenidoVoucher(Compra compra, bool esDuplicado = false)
     {
         var sb = new StringBuilder();
 
         // Encabezado
-        sb.AppendLine(Centrar("================================"));
-        sb.AppendLine(Centrar("SISTEMA COMERCIAL ALIAGA"));
-        sb.AppendLine(Centrar("================================"));
-        sb.AppendLine();
+        sb.AppendLine(Centrar("COMERCIAL ALIAGA"));
+        sb.AppendLine(Centrar("Telefonos: 900812923 / 929450740"));
+        sb.AppendLine(Linea('='));
 
         // Número de voucher y fecha
-        sb.AppendLine($"Voucher N°: {compra.NumeroVoucher.PadLeft(8, '0')}");
-        sb.AppendLine($"Fecha: {compra.FechaCompra:dd/MM/yyyy HH:mm}");
-        sb.AppendLine();
+        sb.AppendLine(EspacioEntre($"Voucher #{compra.NumeroVoucher.PadLeft(8, '0')}", $" - Fecha: {compra.FechaCompra:dd/MM/yyyy HH:mm}"));
 
         // Información del cliente
-        sb.AppendLine("CLIENTE");
-        sb.AppendLine(Linea('-'));
+        sb.AppendLine($"Cliente: {AcortarTexto(compra.ClienteProveedor?.NombreCompleto ?? "N/A", ANCHO_VOUCHER)}");
         sb.AppendLine($"DNI: {compra.ClienteProveedor?.DNI ?? "N/A"}");
-        sb.AppendLine($"Nombre: {AcortarTexto(compra.ClienteProveedor?.NombreCompleto ?? "N/A", ANCHO_VOUCHER)}");
-        if (compra.ClienteProveedor?.Zona != null)
-        {
-            sb.AppendLine($"Zona: {AcortarTexto(compra.ClienteProveedor.Zona.Nombre, ANCHO_VOUCHER - 6)}");
-        }
-        sb.AppendLine();
 
         // Lista de productos
-        sb.AppendLine($"PRODUCTOS ({compra.Detalles.Count})");
         sb.AppendLine(Linea('='));
 
         foreach (var detalle in compra.Detalles)
         {
-            sb.AppendLine();
             sb.AppendLine($">>> {AcortarTexto(detalle.Producto?.Nombre ?? "N/A", ANCHO_VOUCHER - 4)}");
-            sb.AppendLine(Linea('-'));
-            sb.AppendLine($"Nivel Secado: {AcortarTexto(detalle.NivelSecado, ANCHO_VOUCHER - 14)}");
-            sb.AppendLine($"Calidad: {detalle.Calidad}");
-            sb.AppendLine($"Tipo Pesado: {detalle.TipoPesado}");
+            sb.AppendLine(EspacioEntre($"Humedad: {detalle.NivelSecado}", $"Calidad: {detalle.Calidad}"));
 
             if (detalle.TipoPesado == Enums.TipoPesado.Kg)
             {
                 sb.AppendLine(FormatearLinea("Peso Bruto:", $"{detalle.PesoBruto:N1} kg"));
                 sb.AppendLine(FormatearLinea("Descuento:", $"{detalle.DescuentoKg:N1} kg"));
-                sb.AppendLine(FormatearLinea("Peso Neto:", $"{detalle.PesoNeto:N1} kg"));
-            }
-            else
-            {
-                sb.AppendLine(FormatearLinea("Valdeos:", $"{detalle.PesoBruto:N0}"));
                 sb.AppendLine(FormatearLinea("Peso Neto:", $"{detalle.PesoNeto:N1} kg"));
             }
 
@@ -130,24 +152,17 @@ public class VoucherService : IVoucherService
         }
 
         // Totales generales
-        sb.AppendLine();
         sb.AppendLine(Linea('='));
-        sb.AppendLine(FormatearLinea("PESO TOTAL:", $"{compra.PesoTotal:N1} kg", true));
-        sb.AppendLine(Centrar("=========================="));
-        sb.AppendLine(FormatearLinea("TOTAL A PAGAR:", $"S/ {compra.MontoTotal:N2}", true));
-        sb.AppendLine(Centrar("=========================="));
-        sb.AppendLine();
+        sb.AppendLine(FormatearLinea("TOTAL PAGADO:", $"S/ {compra.MontoTotal:N2}", true));
+        sb.AppendLine(Linea('='));
 
         // Pie de voucher
-        sb.AppendLine(Centrar("Gracias por su preferencia"));
         sb.AppendLine();
+        sb.AppendLine(Centrar("*** Gracias por su preferencia ***"));
 
         // Marca de duplicado
         if (esDuplicado)
-        {
-            sb.AppendLine();
-            sb.AppendLine(Centrar("*** DUPLICADO ***"));
-        }
+            sb.AppendLine("-- DUPLICADO --");
 
         // Marca de editado
         if (compra.Editada)
@@ -155,9 +170,6 @@ public class VoucherService : IVoucherService
             sb.AppendLine();
             sb.AppendLine(Centrar("(Editado)"));
         }
-
-        sb.AppendLine();
-        sb.AppendLine(Centrar("================================"));
 
         return sb.ToString();
     }
@@ -167,6 +179,8 @@ public class VoucherService : IVoucherService
         try
         {
             var nombreImpresora = _configuration["Impresora:Nombre"];
+            var habilitada = _configuration.GetValue<bool>("Impresora:Habilitada", true);
+            var tipoComunicacion = _configuration["Impresora:TipoComunicacion"] ?? "USB";
 
             if (string.IsNullOrEmpty(nombreImpresora))
             {
@@ -174,16 +188,228 @@ public class VoucherService : IVoucherService
                 return false;
             }
 
-            // TODO: Implementar integración con ESCPOS-NET para impresión térmica
-            // Por ahora retornamos false para indicar que no se imprimió físicamente
-            // pero el voucher fue generado exitosamente
-            _logger.LogInformation("Voucher generado (impresión pendiente de implementación con ESCPOS-NET)");
+            if (!habilitada)
+            {
+                _logger.LogInformation("Impresión deshabilitada en configuración");
+                return false;
+            }
 
-            return await Task.FromResult(false);
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    if (tipoComunicacion.Equals("USB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Impresora USB/Windows usando API de Windows
+                        return ImprimirConWindowsAPI(nombreImpresora, contenido);
+                    }
+                    else
+                    {
+                        _logger.LogError("Tipo de comunicación no válido: {TipoComunicacion}", tipoComunicacion);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error al imprimir voucher");
+                    return false;
+                }
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al imprimir voucher");
+            _logger.LogError(ex, "Error al configurar impresión de voucher");
+            return false;
+        }
+    }
+
+    private bool ImprimirConWindowsAPI(string nombreImpresora, string contenido)
+    {
+        IntPtr hPrinter = IntPtr.Zero;
+        try
+        {
+            // VERIFICAR SI LA IMPRESORA ESTÁ REALMENTE CONECTADA Y DISPONIBLE
+            if (!VerificarImpresoraDisponible(nombreImpresora))
+            {
+                _logger.LogWarning("Impresora '{Impresora}' no está conectada o disponible. No se enviará el trabajo de impresión para evitar acumulación en cola.", nombreImpresora);
+                return false;
+            }
+
+            // Abrir impresora
+            if (!OpenPrinter(nombreImpresora, out hPrinter, IntPtr.Zero))
+            {
+                _logger.LogError("No se pudo abrir la impresora {Impresora}. Verifica que el nombre sea correcto.", nombreImpresora);
+                return false;
+            }
+
+            // Iniciar documento
+            var di = new DOCINFOA
+            {
+                pDocName = "Voucher de Compra",
+                pDataType = "RAW"
+            };
+
+            if (!StartDocPrinter(hPrinter, 1, di))
+            {
+                _logger.LogError("No se pudo iniciar el documento de impresión");
+                return false;
+            }
+
+            // Iniciar página
+            if (!StartPagePrinter(hPrinter))
+            {
+                EndDocPrinter(hPrinter);
+                _logger.LogError("No se pudo iniciar la página de impresión");
+                return false;
+            }
+
+            // Generar comandos ESC/POS
+            var e = new EPSON();
+            var comandos = new List<byte[]>();
+
+            // Inicializar (sin agregar líneas extra al inicio)
+            comandos.Add(e.Initialize());
+
+            // Procesar contenido línea por línea
+            var lineas = contenido.Split(new[] { Environment.NewLine, "\n" }, StringSplitOptions.None);
+
+            foreach (var linea in lineas)
+            {
+                // Saltar líneas vacías al inicio del documento
+                if (string.IsNullOrWhiteSpace(linea) && comandos.Count <= 1)
+                {
+                    continue;
+                }
+
+                if (linea.Contains("COMERCIAL ALIAGA"))
+                {
+                    comandos.Add(e.CenterAlign());
+                    comandos.Add(e.SetStyles(PrintStyle.Bold | PrintStyle.DoubleWidth));
+                    comandos.Add(e.PrintLine(linea));
+                    comandos.Add(e.SetStyles(PrintStyle.None));
+                }
+                else if (linea.Contains("===") || linea.Contains("Gracias por su preferencia") || linea.Contains("Telefonos"))
+                {
+                    comandos.Add(e.CenterAlign());
+                    comandos.Add(e.PrintLine(linea));
+                }
+                else if (linea.Contains("DUPLICADO"))
+                {
+                    comandos.Add(e.SetStyles(PrintStyle.Bold | PrintStyle.Underline));
+                    comandos.Add(e.CenterAlign());
+                    comandos.Add(e.PrintLine(linea));
+                    comandos.Add(e.SetStyles(PrintStyle.None));
+                }
+                else if (linea.Contains("TOTAL PAGADO:"))
+                {
+                    comandos.Add(e.LeftAlign());
+                    comandos.Add(e.SetStyles(PrintStyle.Bold));
+                    comandos.Add(e.PrintLine(linea));
+                    comandos.Add(e.SetStyles(PrintStyle.None));
+                }
+                else
+                {
+                    comandos.Add(e.LeftAlign());
+                    comandos.Add(e.PrintLine(linea));
+                }
+            }
+
+            // Alimentar y cortar
+            comandos.Add(e.FeedLines(3));
+            comandos.Add(e.FullCut());
+
+            // Combinar todos los comandos
+            var todosLosComandos = ByteSplicer.Combine(comandos.ToArray());
+
+            // Enviar a la impresora
+            IntPtr pBytes = Marshal.AllocHGlobal(todosLosComandos.Length);
+            try
+            {
+                Marshal.Copy(todosLosComandos, 0, pBytes, todosLosComandos.Length);
+
+                if (!WritePrinter(hPrinter, pBytes, todosLosComandos.Length, out int escritos))
+                {
+                    _logger.LogError("Error al escribir en la impresora");
+                    return false;
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(pBytes);
+            }
+
+            // Finalizar página y documento
+            EndPagePrinter(hPrinter);
+            EndDocPrinter(hPrinter);
+
+            _logger.LogInformation("Voucher impreso exitosamente en {Impresora}", nombreImpresora);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al imprimir con Windows API en {Impresora}", nombreImpresora);
+            return false;
+        }
+        finally
+        {
+            if (hPrinter != IntPtr.Zero)
+            {
+                ClosePrinter(hPrinter);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifica si la impresora está físicamente conectada y disponible para imprimir.
+    /// Esto evita que trabajos se queden en cola cuando la impresora no está conectada.
+    /// </summary>
+    private bool VerificarImpresoraDisponible(string nombreImpresora)
+    {
+        try
+        {
+            // Obtener todas las impresoras instaladas en el sistema
+            foreach (string printerName in PrinterSettings.InstalledPrinters)
+            {
+                if (printerName.Equals(nombreImpresora, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Crear configuración de la impresora
+                    var printerSettings = new PrinterSettings { PrinterName = nombreImpresora };
+
+                    // Verificar si la impresora es válida
+                    if (!printerSettings.IsValid)
+                    {
+                        _logger.LogWarning("Impresora '{Impresora}' no es válida", nombreImpresora);
+                        return false;
+                    }
+
+                    // Verificar si la impresora está en línea (conectada físicamente)
+                    // Nota: IsValid verifica que existe, pero no garantiza que esté conectada
+                    // Para Windows, intentamos detectar si está offline
+                    try
+                    {
+                        // Intentamos crear un PrintDocument para verificar disponibilidad
+                        using var doc = new System.Drawing.Printing.PrintDocument();
+                        doc.PrinterSettings = printerSettings;
+
+                        // Si llegamos aquí, la impresora está instalada
+                        // PrinterSettings.IsValid ya verificó que existe
+                        _logger.LogInformation("Impresora '{Impresora}' encontrada y disponible", nombreImpresora);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Impresora '{Impresora}' no está accesible", nombreImpresora);
+                        return false;
+                    }
+                }
+            }
+
+            _logger.LogWarning("Impresora '{Impresora}' no está instalada en el sistema", nombreImpresora);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar disponibilidad de impresora '{Impresora}'", nombreImpresora);
             return false;
         }
     }
@@ -195,8 +421,10 @@ public class VoucherService : IVoucherService
         if (texto.Length >= ANCHO_VOUCHER)
             return texto;
 
-        int espacios = (ANCHO_VOUCHER - texto.Length) / 2;
-        return new string(' ', espacios) + texto;
+        int espaciosIzq = (ANCHO_VOUCHER - texto.Length) / 4;
+        int espaciosDer = ANCHO_VOUCHER - texto.Length - espaciosIzq;
+        
+        return new string(' ', espaciosIzq) + texto + new string(' ', espaciosDer);
     }
 
     private string Linea(char caracter)

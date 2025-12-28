@@ -49,7 +49,7 @@ public class ZonaService : IZonaService
 
         var zona = new Zona
         {
-            Nombre = request.Nombre,
+            Nombre = request.Nombre.ToUpper(),
             FechaCreacion = DateTime.Now,
             FechaModificacion = DateTime.Now
         };
@@ -72,7 +72,7 @@ public class ZonaService : IZonaService
             throw new InvalidOperationException("Ya existe otra zona con ese nombre");
         }
 
-        zona.Nombre = request.Nombre;
+        zona.Nombre = request.Nombre.ToUpper();
         await _zonaRepository.UpdateAsync(zona);
 
         return MapToResponse(zona);

@@ -8,6 +8,7 @@ public class CompraResponse
     public string ClienteNombre { get; set; } = string.Empty;
     public string ClienteDNI { get; set; } = string.Empty;
     public int CajaId { get; set; }
+    public DateTime FechaCaja { get; set; }
     public List<DetalleCompraResponse> Detalles { get; set; } = new();
     public decimal PesoTotal { get; set; }
     public decimal MontoTotal { get; set; }

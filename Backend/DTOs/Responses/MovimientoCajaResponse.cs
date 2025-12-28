@@ -5,6 +5,8 @@ namespace Backend.DTOs.Responses;
 public class MovimientoCajaResponse
 {
     public int Id { get; set; }
+    public int CajaId { get; set; }
+    public DateTime FechaCaja { get; set; }
     public TipoMovimiento TipoMovimiento { get; set; }
     public int? ReferenciaId { get; set; }
     public string Concepto { get; set; } = string.Empty;

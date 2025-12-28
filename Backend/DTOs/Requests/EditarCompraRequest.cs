@@ -1,9 +1,37 @@
 using System.ComponentModel.DataAnnotations;
+using Backend.Enums;
 
 namespace Backend.DTOs.Requests;
 
 public class EditarCompraRequest
 {
+    [Required(ErrorMessage = "El ID del cliente proveedor es obligatorio")]
+    public int ClienteProveedorId { get; set; }
+
+    [Required(ErrorMessage = "Debe incluir los detalles de la compra")]
+    [MinLength(1, ErrorMessage = "Debe incluir al menos un detalle")]
+    public List<DetalleCompraEditarRequest> Detalles { get; set; } = new();
+}
+
+public class DetalleCompraEditarRequest
+{
+    [Required(ErrorMessage = "El ID del detalle es obligatorio")]
+    public int Id { get; set; }  // ID del DetalleCompra existente
+
+    [Required(ErrorMessage = "El ID del producto es obligatorio")]
+    public int ProductoId { get; set; }
+
+    [Required(ErrorMessage = "El nivel de secado es obligatorio")]
+    [MaxLength(50)]
+    public string NivelSecado { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La calidad es obligatoria")]
+    [MaxLength(50)]
+    public string Calidad { get; set; } = string.Empty;
+
+    [Required]
+    public TipoPesado TipoPesado { get; set; }
+
     [Required(ErrorMessage = "El peso bruto es obligatorio")]
     [Range(0.1, double.MaxValue, ErrorMessage = "El peso bruto debe ser mayor a 0")]
     public decimal PesoBruto { get; set; }

@@ -1,6 +1,6 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -217,6 +217,56 @@ export class ComprasComponent implements OnInit {
     });
   }
 
+  puedeEditarse(compra: any): boolean {
+    const fechaCompra = new Date(compra.fechaCompra);
+    const fechaLimite = new Date(fechaCompra);
+    fechaLimite.setDate(fechaLimite.getDate() + 1);
+    fechaLimite.setHours(23, 59, 59, 999);
+    return new Date() <= fechaLimite;
+  }
+
+  abrirDialogoEditar(compra: any): void {
+    if (!this.puedeEditarse(compra)) {
+      this.mostrarAlerta(
+        'Esta compra ya no puede editarse (máximo 1 día de antigüedad)',
+        'warning'
+      );
+      return;
+    }
+
+    // Cargar la compra completa con detalles
+    this.comprasService.obtenerPorId(compra.id).subscribe({
+      next: (compraCompleta) => {
+        const dialogRef = this.dialog.open(EditarCompraDialogComponent, {
+          width: '900px',
+          maxHeight: '90vh',
+          disableClose: false,
+          data: { compra: compraCompleta, productos: this.productos }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result) {
+            this.comprasService.editarCompra(compra.id, result).subscribe({
+              next: () => {
+                this.mostrarAlerta('Compra editada exitosamente', 'success');
+                this.cargarCompras();
+              },
+              error: (error) => {
+                this.mostrarAlerta(
+                  'Error al editar la compra: ' + (error.error?.message || error.message),
+                  'error'
+                );
+              }
+            });
+          }
+        });
+      },
+      error: (error) => {
+        this.mostrarAlerta('Error al cargar la compra', 'error');
+      }
+    });
+  }
+
   mostrarAlerta(mensaje: string, tipo: 'success' | 'error' | 'warning' | 'info'): void {
     this.alertMessage = mensaje;
     this.alertType = tipo;
@@ -346,19 +396,19 @@ export class ComprasComponent implements OnInit {
           <mat-form-field appearance="outline" *ngIf="productoSeleccionado">
             <mat-label>Peso Bruto</mat-label>
             <input matInput type="number" step="0.1" formControlName="pesoBruto" (input)="calcularPesoNetoProducto()">
-            <span matSuffix>kg</span>
+            <span matSuffix class="weight-sufix">kg</span>
           </mat-form-field>
 
           <mat-form-field appearance="outline" *ngIf="productoSeleccionado">
             <mat-label>Descuento</mat-label>
             <input matInput type="number" step="0.1" formControlName="descuentoKg" (input)="calcularPesoNetoProducto()">
-            <span matSuffix>kg</span>
+            <span matSuffix class="weight-sufix">kg</span>
           </mat-form-field>
 
           <mat-form-field appearance="outline" *ngIf="productoSeleccionado">
             <mat-label>Precio/Kg</mat-label>
             <input matInput type="number" step="0.01" formControlName="precioPorKg" (input)="calcularSubtotalProducto()">
-            <span matPrefix>S/&nbsp;</span>
+            <span matPrefix class="currency-prefix">S/&nbsp;</span>
           </mat-form-field>
 
           <!-- Resumen del producto -->
@@ -866,9 +916,15 @@ export class RegistrarCompraDialogComponent implements OnInit {
       this.permiteValdeo = this.productoSeleccionado.permiteValdeo || false;
 
       // Reset caracteristicas cuando cambia el producto
+      // Establecer valores por defecto: "Seco" para nivel de secado y "Normal" para calidad
+      const nivelSecadoDefault = this.nivelesSecado.includes('Seco') ? 'Seco' :
+                                  (this.nivelesSecado.length > 0 ? this.nivelesSecado[0] : '');
+      const calidadDefault = this.calidades.includes('Normal') ? 'Normal' :
+                             (this.calidades.length > 0 ? this.calidades[0] : '');
+
       this.productoForm.patchValue({
-        nivelSecado: this.nivelesSecado.length > 0 ? this.nivelesSecado[0] : '',
-        calidad: this.calidades.length > 0 ? this.calidades[0] : '',
+        nivelSecado: nivelSecadoDefault,
+        calidad: calidadDefault,
         tipoPesado: 0,
         pesoBruto: '',
         descuentoKg: 0,
@@ -1256,5 +1312,420 @@ export class DetalleCompraDialogComponent {
 
   onClose(): void {
     this.dialogRef.close();
+  }
+}
+
+// ==================== DIALOG: EDITAR COMPRA ====================
+
+@Component({
+  selector: 'app-editar-compra-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTableModule,
+    ClienteAutocompleteComponent,
+    FormatoMonedaPipe
+  ],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon>edit</mat-icon>
+      Editar Compra - Voucher {{ compraOriginal.numeroVoucher }}
+    </h2>
+    <mat-dialog-content>
+      <!-- Sección Cliente -->
+      <div class="form-section">
+        <h3>Cliente Proveedor</h3>
+        <div class="cliente-actual">
+          <span class="label">Cliente Actual:</span>
+          <span class="value">{{ compraOriginal.clienteNombre }}</span>
+        </div>
+        <form [formGroup]="clienteForm">
+          <app-cliente-autocomplete
+            formControlName="clienteProveedorId"
+            [tipoCliente]="'proveedor'"
+            label="Cambiar a otro cliente (opcional)"
+            placeholder="Buscar otro cliente...">
+          </app-cliente-autocomplete>
+        </form>
+      </div>
+
+      <!-- Tabla de Productos (EDICIÓN, no agregar/eliminar) -->
+      <div class="form-section">
+        <h3>Productos (Solo edición, no se pueden agregar/eliminar)</h3>
+        <div class="table-container">
+          <table mat-table [dataSource]="detallesEditables" class="productos-edit-table">
+            <!-- Producto -->
+            <ng-container matColumnDef="producto">
+              <th mat-header-cell *matHeaderCellDef>Producto</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <mat-select [(ngModel)]="detalle.productoId" (selectionChange)="onProductoChange(detalle)">
+                    <mat-option *ngFor="let prod of productos" [value]="prod.id">
+                      {{ prod.nombre }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Nivel Secado -->
+            <ng-container matColumnDef="nivelSecado">
+              <th mat-header-cell *matHeaderCellDef>Nivel Secado</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <mat-select [(ngModel)]="detalle.nivelSecado">
+                    <mat-option *ngFor="let nivel of getNivelesSecado(detalle.productoId)" [value]="nivel">
+                      {{ nivel }}
+                    </mat-option>
+                    <mat-option *ngIf="getNivelesSecado(detalle.productoId).length === 0" disabled>
+                      Sin opciones disponibles
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Calidad -->
+            <ng-container matColumnDef="calidad">
+              <th mat-header-cell *matHeaderCellDef>Calidad</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <mat-select [(ngModel)]="detalle.calidad">
+                    <mat-option *ngFor="let cal of getCalidades(detalle.productoId)" [value]="cal">
+                      {{ cal }}
+                    </mat-option>
+                    <mat-option *ngIf="getCalidades(detalle.productoId).length === 0" disabled>
+                      Sin opciones disponibles
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Tipo Pesado -->
+            <ng-container matColumnDef="tipoPesado">
+              <th mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <mat-select [(ngModel)]="detalle.tipoPesado">
+                    <mat-option [value]="0">Kg</mat-option>
+                    <mat-option [value]="1">Valdeo</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Peso Bruto -->
+            <ng-container matColumnDef="pesoBruto">
+              <th mat-header-cell *matHeaderCellDef>Peso Bruto</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <input matInput type="number" step="0.1" [(ngModel)]="detalle.pesoBruto"
+                         (input)="recalcularDetalle(detalle)">
+                  <span matSuffix class="weight-sufix">kg</span>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Descuento -->
+            <ng-container matColumnDef="descuentoKg">
+              <th mat-header-cell *matHeaderCellDef>Descuento</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <input matInput type="number" step="0.1" [(ngModel)]="detalle.descuentoKg"
+                         (input)="recalcularDetalle(detalle)">
+                  <span matSuffix class="weight-sufix">kg</span>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Precio -->
+            <ng-container matColumnDef="precioPorKg">
+              <th mat-header-cell *matHeaderCellDef>Precio/Kg</th>
+              <td mat-cell *matCellDef="let detalle">
+                <mat-form-field appearance="outline" class="table-field">
+                  <input matInput type="number" step="0.01" [(ngModel)]="detalle.precioPorKg"
+                         (input)="recalcularDetalle(detalle)">
+                  <span matPrefix class="currency-prefix">S/&nbsp;</span>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Subtotal -->
+            <ng-container matColumnDef="subtotal">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Subtotal</th>
+              <td mat-cell *matCellDef="let detalle" class="text-right">
+                <strong>{{ detalle.subtotal | formatoMoneda }}</strong>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasEdicion"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasEdicion;"></tr>
+          </table>
+        </div>
+
+        <!-- Totales -->
+        <div class="totales-compra">
+          <div class="total-item">
+            <span class="label">PESO TOTAL:</span>
+            <span class="value">{{ pesoTotalCompra | number:'1.1-1' }} kg</span>
+          </div>
+          <div class="total-item final">
+            <span class="label">MONTO TOTAL:</span>
+            <span class="value">{{ montoTotalCompra | formatoMoneda }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="warning-box">
+        <mat-icon>warning</mat-icon>
+        <p>Esta edición actualizará el monto esperado de la caja y marcará la compra como editada.</p>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="onConfirm()">
+        <mat-icon>save</mat-icon> Guardar Cambios
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .form-section {
+      margin-bottom: 24px;
+    }
+    .form-section h3 {
+      margin-bottom: 16px;
+      color: #3f51b5;
+      font-weight: 500;
+    }
+    .cliente-actual {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    .cliente-actual .label {
+      font-weight: 600;
+      color: #666;
+    }
+    .cliente-actual .value {
+      color: #333;
+    }
+    .table-container {
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    .productos-edit-table {
+      width: 100%;
+      min-width: 900px;
+    }
+    .table-field {
+      width: 100%;
+    }
+    .table-field ::ng-deep .mat-mdc-form-field-infix {
+      padding: 8px 0;
+    }
+    .table-field input {
+      font-size: 16px;
+      vertical-align: sub;
+    }
+    .table-field ::ng-deep .mat-mdc-select {
+      font-size: 16px;
+      vertical-align: sub;
+    }
+    .table-field ::ng-deep .weight-sufix,
+    .table-field ::ng-deep .currency-prefix {
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .totales-compra {
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+      padding: 16px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-top: 16px;
+    }
+    .total-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .total-item .label {
+      font-size: 11px;
+      color: #666;
+      font-weight: 500;
+    }
+    .total-item .value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .total-item.final .value {
+      color: #3f51b5;
+    }
+    .warning-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      border-radius: 4px;
+      margin-top: 16px;
+    }
+    .warning-box mat-icon {
+      color: #ff9800;
+    }
+    .warning-box p {
+      margin: 0;
+      color: #666;
+      font-size: 13px;
+    }
+  `]
+})
+export class EditarCompraDialogComponent implements OnInit {
+  compraOriginal: any;
+  productos: any[] = [];
+  clienteForm: FormGroup;
+  detallesEditables: any[] = [];
+  columnasEdicion = ['producto', 'nivelSecado', 'calidad', 'tipoPesado', 'pesoBruto', 'descuentoKg', 'precioPorKg', 'subtotal'];
+
+  pesoTotalCompra: number = 0;
+  montoTotalCompra: number = 0;
+
+  constructor(
+    private fb: FormBuilder,
+    private dialogRef: MatDialogRef<EditarCompraDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any
+  ) {
+    this.compraOriginal = data.compra;
+    this.productos = data.productos || [];
+
+    this.clienteForm = this.fb.group({
+      clienteProveedorId: [this.compraOriginal.clienteProveedorId, Validators.required]
+    });
+  }
+
+  ngOnInit(): void {
+    // Clonar detalles originales para edición
+    this.detallesEditables = this.compraOriginal.detalles.map((d: any) => ({
+      id: d.id,
+      productoId: d.productoId,
+      productoNombre: d.productoNombre,
+      nivelSecado: d.nivelSecado,
+      calidad: d.calidad,
+      tipoPesado: d.tipoPesado,
+      pesoBruto: d.pesoBruto,
+      descuentoKg: d.descuentoKg,
+      precioPorKg: d.precioPorKg,
+      pesoNeto: d.pesoNeto,
+      subtotal: d.subtotal
+    }));
+
+    this.calcularTotales();
+  }
+
+  onProductoChange(detalle: any): void {
+    const producto = this.productos.find(p => p.id === detalle.productoId);
+    if (producto) {
+      detalle.productoNombre = producto.nombre;
+      // Resetear niveles y calidades al cambiar producto
+      const caracteristicas = this.parseCaracteristicas(producto);
+      if (caracteristicas.nivelesSecado.length > 0) {
+        detalle.nivelSecado = caracteristicas.nivelesSecado[0];
+      }
+      if (caracteristicas.calidades.length > 0) {
+        detalle.calidad = caracteristicas.calidades[0];
+      }
+    }
+  }
+
+  getNivelesSecado(productoId: number): string[] {
+    const producto = this.productos.find(p => p.id === productoId);
+    if (!producto) return [];
+    return this.parseCaracteristicas(producto).nivelesSecado;
+  }
+
+  getCalidades(productoId: number): string[] {
+    const producto = this.productos.find(p => p.id === productoId);
+    if (!producto) return [];
+    return this.parseCaracteristicas(producto).calidades;
+  }
+
+  parseCaracteristicas(producto: any): { nivelesSecado: string[], calidades: string[] } {
+    try {
+      // Si ya es un array, usarlo directamente. Si es string JSON, parsearlo
+      let nivelesSecado = [];
+      let calidades = [];
+
+      if (producto.nivelesSecado) {
+        nivelesSecado = Array.isArray(producto.nivelesSecado)
+          ? producto.nivelesSecado
+          : JSON.parse(producto.nivelesSecado);
+      }
+
+      if (producto.calidades) {
+        calidades = Array.isArray(producto.calidades)
+          ? producto.calidades
+          : JSON.parse(producto.calidades);
+      }
+
+      return { nivelesSecado, calidades };
+    } catch (error) {
+      console.error('Error al parsear características del producto:', error, producto);
+      return { nivelesSecado: [], calidades: [] };
+    }
+  }
+
+  recalcularDetalle(detalle: any): void {
+    detalle.pesoNeto = Math.max(0, detalle.pesoBruto - detalle.descuentoKg);
+    detalle.subtotal = detalle.pesoNeto * detalle.precioPorKg;
+    this.calcularTotales();
+  }
+
+  calcularTotales(): void {
+    this.pesoTotalCompra = this.detallesEditables.reduce((sum, d) => sum + (d.pesoNeto || 0), 0);
+    this.montoTotalCompra = this.detallesEditables.reduce((sum, d) => sum + (d.subtotal || 0), 0);
+  }
+
+  onCancel(): void {
+    this.dialogRef.close();
+  }
+
+  onConfirm(): void {
+    // Si no se seleccionó un nuevo cliente, usar el original
+    const clienteId = this.clienteForm.value.clienteProveedorId || this.compraOriginal.clienteProveedorId;
+
+    const request = {
+      clienteProveedorId: clienteId,
+      detalles: this.detallesEditables.map(d => ({
+        id: d.id,
+        productoId: d.productoId,
+        nivelSecado: d.nivelSecado,
+        calidad: d.calidad,
+        tipoPesado: d.tipoPesado,
+        pesoBruto: d.pesoBruto,
+        descuentoKg: d.descuentoKg,
+        precioPorKg: d.precioPorKg
+      }))
+    };
+
+    this.dialogRef.close(request);
   }
 }

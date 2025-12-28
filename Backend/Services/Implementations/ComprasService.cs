@@ -85,7 +85,7 @@ public class ComprasService : IComprasService
                     var nuevoCliente = new ClienteProveedor
                     {
                         DNI = request.NuevoCliente.Dni,
-                        NombreCompleto = request.NuevoCliente.NombreCompleto,
+                        NombreCompleto = request.NuevoCliente.NombreCompleto.ToUpper(),
                         FechaCreacion = DateTime.Now,
                         FechaModificacion = DateTime.Now,
                         SaldoPrestamo = 0,
@@ -169,7 +169,7 @@ public class ComprasService : IComprasService
                 CajaId = cajaActual.Id,
                 TipoMovimiento = TipoMovimiento.Compra,
                 ReferenciaId = compraNueva.Id,
-                Concepto = $"Compra con {compra.Detalles.Count} producto(s) - Voucher {compraNueva.NumeroVoucher}",
+                Concepto = $"COMPRA CON {compra.Detalles.Count} PRODUCTO(S) - VOUCHER {compraNueva.NumeroVoucher}",
                 Monto = compra.MontoTotal,
                 TipoOperacion = TipoOperacion.Egreso,
                 FechaMovimiento = DateTime.Now,
@@ -215,10 +215,155 @@ public class ComprasService : IComprasService
 
     public async Task<CompraResponse> EditarCompraAsync(int compraId, EditarCompraRequest request)
     {
-        // TODO: Rediseñar para soportar edición de compras multi-producto
-        // Requiere permitir agregar/eliminar/modificar detalles individuales
-        await Task.CompletedTask;
-        throw new NotImplementedException("La edición de compras multi-producto no está implementada aún. Use Ajuste Posterior para modificaciones.");
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            // 1. Validar existencia
+            var compra = await _compraRepository.GetByIdWithDetailsAsync(compraId);
+            if (compra == null)
+                throw new InvalidOperationException("Compra no encontrada.");
+
+            // 2. Validar plazo temporal (máximo 1 día)
+            var fechaLimite = compra.FechaCompra.Date.AddDays(2);
+            if (DateTime.Now >= fechaLimite)
+                throw new InvalidOperationException(
+                    $"Solo se pueden editar compras hasta el día siguiente de su registro. " +
+                    $"Esta compra fue registrada el {compra.FechaCompra:dd/MM/yyyy}.");
+
+            // 3. Validar cantidad de detalles (NO agregar/eliminar)
+            if (request.Detalles == null || !request.Detalles.Any())
+                throw new InvalidOperationException("Debe incluir al menos un detalle.");
+
+            if (request.Detalles.Count != compra.Detalles.Count)
+                throw new InvalidOperationException(
+                    $"La compra tiene {compra.Detalles.Count} detalle(s). " +
+                    $"No se pueden agregar ni eliminar detalles, solo modificarlos.");
+
+            // 4. Validar IDs de detalles
+            var idsDetallesOriginales = compra.Detalles.Select(d => d.Id).ToHashSet();
+            foreach (var detalleReq in request.Detalles)
+            {
+                if (!idsDetallesOriginales.Contains(detalleReq.Id))
+                    throw new InvalidOperationException(
+                        $"El detalle con ID {detalleReq.Id} no pertenece a esta compra.");
+            }
+
+            // 5. Validar nuevo cliente si cambió
+            if (request.ClienteProveedorId != compra.ClienteProveedorId)
+            {
+                var nuevoCliente = await _clienteRepository.GetProveedorByIdAsync(request.ClienteProveedorId);
+                if (nuevoCliente == null)
+                    throw new InvalidOperationException("El nuevo cliente proveedor no existe.");
+            }
+
+            // 6. Validar productos
+            var productosIds = request.Detalles.Select(d => d.ProductoId).Distinct();
+            foreach (var productoId in productosIds)
+            {
+                var producto = await _context.Productos.FindAsync(productoId);
+                if (producto == null)
+                    throw new InvalidOperationException($"Producto {productoId} no encontrado.");
+            }
+
+            // 7. Guardar valores originales
+            var montoOriginal = compra.MontoTotal;
+            var cajaId = compra.CajaId;
+
+            // 8. Actualizar cliente
+            compra.ClienteProveedorId = request.ClienteProveedorId;
+
+            // 9. Actualizar detalles y recalcular totales
+            compra.PesoTotal = 0;
+            compra.MontoTotal = 0;
+
+            foreach (var detalleReq in request.Detalles)
+            {
+                var detalleOriginal = compra.Detalles.First(d => d.Id == detalleReq.Id);
+
+                detalleOriginal.ProductoId = detalleReq.ProductoId;
+                detalleOriginal.NivelSecado = detalleReq.NivelSecado;
+                detalleOriginal.Calidad = detalleReq.Calidad;
+                detalleOriginal.TipoPesado = detalleReq.TipoPesado;
+                detalleOriginal.PesoBruto = detalleReq.PesoBruto;
+                detalleOriginal.DescuentoKg = detalleReq.DescuentoKg;
+                detalleOriginal.PrecioPorKg = detalleReq.PrecioPorKg;
+
+                detalleOriginal.PesoNeto = CalculosHelper.CalcularPesoNeto(
+                    detalleReq.PesoBruto,
+                    detalleReq.DescuentoKg);
+                detalleOriginal.Subtotal = CalculosHelper.CalcularMontoTotal(
+                    detalleOriginal.PesoNeto,
+                    detalleReq.PrecioPorKg);
+
+                compra.PesoTotal += detalleOriginal.PesoNeto;
+                compra.MontoTotal += detalleOriginal.Subtotal;
+            }
+
+            // 10. Marcar como editada
+            compra.Editada = true;
+            compra.FechaEdicion = DateTime.Now;
+
+            // 11. Guardar cambios en compra
+            await _compraRepository.UpdateAsync(compra);
+
+            // 12. Actualizar MovimientoCaja existente
+            var movimientoCaja = await _context.MovimientosCaja
+                .FirstOrDefaultAsync(m =>
+                    m.CajaId == cajaId &&
+                    m.TipoMovimiento == TipoMovimiento.Compra &&
+                    m.ReferenciaId == compraId);
+
+            if (movimientoCaja == null)
+                throw new InvalidOperationException(
+                    "No se encontró el movimiento de caja asociado a esta compra.");
+
+            movimientoCaja.Monto = compra.MontoTotal;
+            movimientoCaja.Concepto = $"Compra con {compra.Detalles.Count} producto(s) - Voucher {compra.NumeroVoucher} (EDITADA)";
+            _context.MovimientosCaja.Update(movimientoCaja);
+            await _context.SaveChangesAsync();
+
+            // 13. Recalcular MontoEsperado de la caja
+            var caja = await _cajaRepository.GetByIdAsync(cajaId);
+            if (caja != null)
+            {
+                var diferenciaMonto = compra.MontoTotal - montoOriginal;
+                caja.MontoEsperado -= diferenciaMonto; // Compra es egreso
+
+                // Recalcular Diferencia solo si la caja está cerrada
+                if (caja.ArqueoReal.HasValue)
+                {
+                    caja.Diferencia = CalculosHelper.CalcularDiferencia(
+                        caja.ArqueoReal.Value,
+                        caja.MontoEsperado);
+                }
+
+                await _cajaRepository.UpdateAsync(caja);
+            }
+
+            // 14. Commit transacción
+            await transaction.CommitAsync();
+
+            // 15. Cargar relaciones para response
+            await _context.Entry(compra).Reference(c => c.ClienteProveedor).LoadAsync();
+            await _context.Entry(compra).Collection(c => c.Detalles).LoadAsync();
+            foreach (var detalle in compra.Detalles)
+            {
+                await _context.Entry(detalle).Reference(d => d.Producto).LoadAsync();
+            }
+
+            _logger.LogInformation(
+                "Compra {CompraId} editada. Monto: {MontoOriginal} → {MontoNuevo}",
+                compraId, montoOriginal, compra.MontoTotal);
+
+            return MapToResponse(compra);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Error al editar compra {CompraId}", compraId);
+            throw;
+        }
     }
 
     public async Task<CompraResponse?> GetByIdAsync(int id)
@@ -269,6 +414,7 @@ public class ComprasService : IComprasService
             ClienteNombre = compra.ClienteProveedor?.NombreCompleto ?? string.Empty,
             ClienteDNI = compra.ClienteProveedor?.DNI ?? string.Empty,
             CajaId = compra.CajaId,
+            FechaCaja = compra.Caja?.Fecha ?? DateTime.MinValue,
             Detalles = compra.Detalles.Select(d => new DetalleCompraResponse
             {
                 Id = d.Id,

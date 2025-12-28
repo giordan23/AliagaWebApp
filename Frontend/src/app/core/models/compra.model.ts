@@ -34,6 +34,7 @@ export interface Compra {
   clienteNombre: string;
   clienteDNI: string;
   cajaId: number;
+  fechaCaja: Date;
   detalles: DetalleCompra[];
   pesoTotal: number;
   montoTotal: number;

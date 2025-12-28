@@ -30,7 +30,7 @@ dotnet ef database update
 dotnet ef migrations add MigrationName
 
 # Access Swagger UI
-# Navigate to: http://localhost:5000/swagger
+# Navigate to: http://localhost:5252/swagger
 ```
 
 ### Frontend (Angular 21)
@@ -250,7 +250,7 @@ Backend allows `http://localhost:4200` (configured in `Program.cs`). If frontend
 
 ## Port Configuration
 
-- **Backend**: http://localhost:5000
+- **Backend**: http://localhost:5252
 - **Frontend**: http://localhost:4200
 - **Database**: SQLite file at `Backend/miapp.db`
 

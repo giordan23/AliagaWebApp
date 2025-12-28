@@ -22,4 +22,7 @@ public class CrearClienteProveedorRequest
     public DateTime? FechaNacimiento { get; set; }
 
     public int? ZonaId { get; set; }
+
+    [MaxLength(100)]
+    public string? ZonaNombre { get; set; }
 }

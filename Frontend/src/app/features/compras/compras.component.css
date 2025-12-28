@@ -206,6 +206,42 @@ mat-card-title {
   font-weight: 500;
 }
 
+/* Separador de Caja */
+.separator-row {
+  height: auto !important;
+  background: transparent;
+}
+
+.separator-row td {
+  padding: 20px 16px !important;
+  border-bottom: none !important;
+}
+
+.caja-separator {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.separator-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #cbd5e0, transparent);
+}
+
+.separator-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5568;
+  background-color: #edf2f7;
+  padding: 6px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .compras-container {

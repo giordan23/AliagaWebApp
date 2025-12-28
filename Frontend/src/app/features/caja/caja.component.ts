@@ -325,7 +325,7 @@ export class CajaComponent implements OnInit {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Monto Inicial</mat-label>
           <input matInput type="number" step="0.01" formControlName="montoInicial" placeholder="0.00">
-          <span matPrefix>S/&nbsp;</span>
+          <span matPrefix class="currency-prefix">S/&nbsp;</span>
           <mat-error *ngIf="form.get('montoInicial')?.hasError('required')">
             El monto inicial es requerido
           </mat-error>
@@ -430,7 +430,7 @@ export class AbrirCajaDialogComponent {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Arqueo Real</mat-label>
           <input matInput type="number" step="0.01" formControlName="arqueoReal" placeholder="0.00" (input)="calcularDiferencia()">
-          <span matPrefix>S/&nbsp;</span>
+          <span matPrefix class="currency-prefix">S/&nbsp;</span>
           <mat-error *ngIf="form.get('arqueoReal')?.hasError('required')">
             El arqueo real es requerido
           </mat-error>
@@ -611,7 +611,7 @@ export class CerrarCajaDialogComponent {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Monto</mat-label>
           <input matInput type="number" step="0.01" formControlName="monto" placeholder="0.00">
-          <span matPrefix>S/&nbsp;</span>
+          <span matPrefix class="currency-prefix">S/&nbsp;</span>
           <mat-error *ngIf="form.get('monto')?.hasError('required')">
             El monto es requerido
           </mat-error>
@@ -730,7 +730,7 @@ export class RegistrarMovimientoDialogComponent {
             <span class="value">{{ caja.montoInicial | formatoMoneda }}</span>
           </div>
           <div class="info-item">
-            <span class="label">Monto Esperado</span>
+            <span class="label">Saldo Esperado</span>
             <span class="value">{{ caja.montoEsperado | formatoMoneda }}</span>
           </div>
           <div class="info-item">
@@ -742,6 +742,22 @@ export class RegistrarMovimientoDialogComponent {
             <span class="value" [ngClass]="{'positive': caja.diferencia >= 0, 'negative': caja.diferencia < 0}">
               {{ caja.diferencia | formatoMoneda }}
             </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Monto Compras</span>
+            <span class="value egreso">{{ caja.totalCompras | formatoMoneda }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Monto Gastos</span>
+            <span class="value egreso">{{ caja.totalGastos | formatoMoneda }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Monto Retiros</span>
+            <span class="value egreso">{{ caja.totalRetiros | formatoMoneda }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Monto Inyecciones</span>
+            <span class="value ingreso">{{ caja.totalInyecciones | formatoMoneda }}</span>
           </div>
         </div>
       </div>

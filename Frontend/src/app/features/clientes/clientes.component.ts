@@ -1,10 +1,11 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ClientesService } from '../../core/services/clientes.service';
 import { ZonasService } from '../../core/services/zonas.service';
 import { FormatoMonedaPipe } from '../../shared/pipes/formato-moneda.pipe';
+import { ZonaAutocompleteComponent } from '../../shared/components/zona-autocomplete/zona-autocomplete.component';
 
 interface ClienteProveedor {
   id: number;
@@ -15,6 +16,7 @@ interface ClienteProveedor {
   fechaNacimiento?: Date;
   zonaId?: number;
   zonaNombre?: string;
+  zona?: number | string; // Para autocomplete: ID o nombre de zona
   saldoPrestamo: number;
   totalKgVendidos: number;
   esAnonimo: boolean;
@@ -29,7 +31,7 @@ interface Zona {
 @Component({
   selector: 'app-clientes',
   standalone: true,
-  imports: [CommonModule, FormsModule, FormatoMonedaPipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, FormatoMonedaPipe, ZonaAutocompleteComponent],
   templateUrl: './clientes.component.html',
   styleUrls: ['./clientes.component.css']
 })
@@ -56,7 +58,8 @@ export class ClientesComponent implements OnInit {
     telefono: '',
     direccion: '',
     fechaNacimiento: null,
-    zonaId: null
+    zonaId: null,
+    zonaNombre: null
   };
   consultandoReniec: boolean = false;
   reniecExitoso: boolean = false;
@@ -143,12 +146,28 @@ export class ClientesComponent implements OnInit {
   guardarCliente(): void {
     if (!this.clienteEditando) return;
 
+    // Determinar si es zonaId (number) o zonaNombre (string)
+    let zonaId = null;
+    let zonaNombre = null;
+
+    if ((this.clienteEditando as any).zona) {
+      if (typeof (this.clienteEditando as any).zona === 'number') {
+        zonaId = (this.clienteEditando as any).zona;
+      } else if (typeof (this.clienteEditando as any).zona === 'string') {
+        zonaNombre = (this.clienteEditando as any).zona;
+      }
+    } else if (this.clienteEditando.zonaId) {
+      // Si no hay campo zona pero sí zonaId (para compatibilidad)
+      zonaId = this.clienteEditando.zonaId;
+    }
+
     const request = {
       nombreCompleto: this.clienteEditando.nombreCompleto,
       telefono: this.clienteEditando.telefono || null,
       direccion: this.clienteEditando.direccion || null,
       fechaNacimiento: this.clienteEditando.fechaNacimiento || null,
-      zonaId: this.clienteEditando.zonaId || null
+      zonaId: zonaId,
+      zonaNombre: zonaNombre
     };
 
     this.clientesService.actualizarProveedor(this.clienteEditando.id, request).subscribe({
@@ -200,7 +219,8 @@ export class ClientesComponent implements OnInit {
       telefono: '',
       direccion: '',
       fechaNacimiento: null,
-      zonaId: null
+      zonaId: null,
+      zonaNombre: null
     };
     this.consultandoReniec = false;
     this.reniecExitoso = false;
@@ -216,7 +236,8 @@ export class ClientesComponent implements OnInit {
       telefono: '',
       direccion: '',
       fechaNacimiento: null,
-      zonaId: null
+      zonaId: null,
+      zonaNombre: null
     };
     this.consultandoReniec = false;
     this.reniecExitoso = false;
@@ -270,13 +291,26 @@ export class ClientesComponent implements OnInit {
       return;
     }
 
+    // Determinar si es zonaId (number) o zonaNombre (string)
+    let zonaId = null;
+    let zonaNombre = null;
+
+    if (this.nuevoCliente.zona) {
+      if (typeof this.nuevoCliente.zona === 'number') {
+        zonaId = this.nuevoCliente.zona;
+      } else if (typeof this.nuevoCliente.zona === 'string') {
+        zonaNombre = this.nuevoCliente.zona;
+      }
+    }
+
     const request = {
       dni: this.nuevoCliente.dni,
       nombreCompleto: this.nuevoCliente.nombreCompleto,
       telefono: this.nuevoCliente.telefono || null,
       direccion: this.nuevoCliente.direccion || null,
       fechaNacimiento: this.nuevoCliente.fechaNacimiento || null,
-      zonaId: this.nuevoCliente.zonaId || null
+      zonaId: zonaId,
+      zonaNombre: zonaNombre
     };
 
     this.clientesService.crearProveedor(request).subscribe({

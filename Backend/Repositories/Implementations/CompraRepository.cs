@@ -137,4 +137,25 @@ public class CompraRepository : ICompraRepository
 
         return compra.FechaCompra.Date == DateTime.Today;
     }
+
+    public async Task<Compra?> GetByIdWithDetailsAsync(int id)
+    {
+        return await _context.Compras
+            .Include(c => c.ClienteProveedor)
+            .Include(c => c.Detalles)
+                .ThenInclude(d => d.Producto)
+            .Include(c => c.Caja)
+            .FirstOrDefaultAsync(c => c.Id == id);
+    }
+
+    public async Task<bool> PuedeEditarseAsync(int compraId)
+    {
+        var compra = await _context.Compras.FindAsync(compraId);
+        if (compra == null)
+            return false;
+
+        // Permitir editar hasta las 23:59 del día siguiente
+        var fechaLimite = compra.FechaCompra.Date.AddDays(2);
+        return DateTime.Now < fechaLimite;
+    }
 }

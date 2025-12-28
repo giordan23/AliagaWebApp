@@ -133,6 +133,13 @@
               <button mat-icon-button (click)="verDetalle(compra.id)" matTooltip="Ver Detalle">
                 <mat-icon>visibility</mat-icon>
               </button>
+              <button mat-icon-button
+                      color="accent"
+                      (click)="abrirDialogoEditar(compra)"
+                      [disabled]="!puedeEditarse(compra)"
+                      [matTooltip]="puedeEditarse(compra) ? 'Editar compra' : 'Solo se puede editar hasta el día siguiente'">
+                <mat-icon>edit</mat-icon>
+              </button>
               <button mat-icon-button (click)="reimprimirVoucher(compra.id)" matTooltip="Reimprimir Voucher">
                 <mat-icon>print</mat-icon>
               </button>
@@ -140,7 +147,20 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="columnasCompras"></tr>
-          <tr mat-row *matRowDef="let row; columns: columnasCompras;"></tr>
+
+          <!-- Separador entre cajas diferentes -->
+          <ng-container *matRowDef="let row; columns: columnasCompras; let i = index">
+            <tr *ngIf="i > 0 && compras[i].cajaId !== compras[i-1].cajaId" class="separator-row">
+              <td [attr.colspan]="columnasCompras.length">
+                <div class="caja-separator">
+                  <span class="separator-line"></span>
+                  <span class="separator-text">Caja Anterior</span>
+                  <span class="separator-line"></span>
+                </div>
+              </td>
+            </tr>
+            <tr mat-row></tr>
+          </ng-container>
 
           <!-- Empty State -->
           <tr class="mat-row" *matNoDataRow>

@@ -1,0 +1,524 @@
+<div class="reportes-container">
+  <h1>Reportes</h1>
+
+  <!-- Tabs de navegación -->
+  <div class="tabs">
+    <button
+      class="tab"
+      [class.active]="tabActiva === 'compras-cliente'"
+      (click)="cambiarTab('compras-cliente')">
+      Compras por Cliente
+    </button>
+    <button
+      class="tab"
+      [class.active]="tabActiva === 'compras-producto'"
+      (click)="cambiarTab('compras-producto')">
+      Compras por Producto
+    </button>
+    <button
+      class="tab"
+      [class.active]="tabActiva === 'zonas'"
+      (click)="cambiarTab('zonas')">
+      Resumen por Zonas
+    </button>
+    <button
+      class="tab"
+      [class.active]="tabActiva === 'movimientos-caja'"
+      (click)="cambiarTab('movimientos-caja')">
+      Movimientos de Caja
+    </button>
+    <button
+      class="tab"
+      [class.active]="tabActiva === 'ventas'"
+      (click)="cambiarTab('ventas')">
+      Ventas
+    </button>
+  </div>
+
+  <!-- Contenido de tabs -->
+  <div class="tab-content">
+
+    <!-- TAB: Compras por Cliente -->
+    <div *ngIf="tabActiva === 'compras-cliente'" class="tab-panel">
+      <div class="filtros-card">
+        <h3>Filtros</h3>
+        <div class="filtros-grid">
+          <div class="filtro-item">
+            <label>Fecha Inicio *</label>
+            <input type="date" [(ngModel)]="filtros.fechaInicio" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Fecha Fin *</label>
+            <input type="date" [(ngModel)]="filtros.fechaFin" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Cliente (Opcional)</label>
+            <select [(ngModel)]="filtros.clienteId" class="form-control">
+              <option [value]="undefined">Todos</option>
+              <option *ngFor="let cliente of clientesProveedores" [value]="cliente.id">
+                {{ cliente.nombreCompleto }} - {{ cliente.dni }}
+              </option>
+            </select>
+          </div>
+          <div class="filtro-item">
+            <label>Zona (Opcional)</label>
+            <select [(ngModel)]="filtros.zonaId" class="form-control">
+              <option [value]="undefined">Todas</option>
+              <option *ngFor="let zona of zonas" [value]="zona.id">
+                {{ zona.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="filtros-acciones">
+          <button class="btn btn-primary" (click)="generarReporte()" [disabled]="cargando">
+            {{ cargando ? 'Generando...' : 'Generar Reporte' }}
+          </button>
+          <button class="btn btn-success" (click)="exportarExcel()" [disabled]="cargando || !mostrandoResultados">
+            Exportar a Excel
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="mostrandoResultados" class="resultados-card">
+        <h3>Resultados</h3>
+        <div class="tabla-container">
+          <table class="tabla-reporte">
+            <thead>
+              <tr>
+                <th>DNI</th>
+                <th>Cliente</th>
+                <th>Zona</th>
+                <th>Total Compras</th>
+                <th>Peso Total (kg)</th>
+                <th>Monto Total</th>
+                <th>Saldo Préstamo</th>
+                <th>Última Compra</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reporteComprasCliente">
+                <td>{{ item.clienteDNI }}</td>
+                <td>{{ item.clienteNombre }}</td>
+                <td>{{ item.zona }}</td>
+                <td class="text-center">{{ item.totalCompras }}</td>
+                <td class="text-right">{{ item.pesoTotalKg | number:'1.1-1' }}</td>
+                <td class="text-right">{{ item.montoTotal | formatoMoneda }}</td>
+                <td class="text-right" [class.text-warning]="item.saldoPrestamo > 0">
+                  {{ item.saldoPrestamo | formatoMoneda }}
+                </td>
+                <td>{{ item.ultimaCompra | formatoFecha }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="totales-row">
+                <td colspan="3"><strong>TOTALES</strong></td>
+                <td class="text-center"><strong>{{ totales.totalRegistros }}</strong></td>
+                <td class="text-right"><strong>{{ totales.totalKg | number:'1.1-1' }} kg</strong></td>
+                <td class="text-right"><strong>{{ totales.totalMonto | formatoMoneda }}</strong></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Compras por Producto -->
+    <div *ngIf="tabActiva === 'compras-producto'" class="tab-panel">
+      <div class="filtros-card">
+        <h3>Filtros</h3>
+        <div class="filtros-grid">
+          <div class="filtro-item">
+            <label>Fecha Inicio *</label>
+            <input type="date" [(ngModel)]="filtros.fechaInicio" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Fecha Fin *</label>
+            <input type="date" [(ngModel)]="filtros.fechaFin" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Producto (Opcional)</label>
+            <select [(ngModel)]="filtros.productoId" class="form-control">
+              <option [value]="undefined">Todos</option>
+              <option *ngFor="let producto of productos" [value]="producto.id">
+                {{ producto.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="filtros-acciones">
+          <button class="btn btn-primary" (click)="generarReporte()" [disabled]="cargando">
+            {{ cargando ? 'Generando...' : 'Generar Reporte' }}
+          </button>
+          <button class="btn btn-success" (click)="exportarExcel()" [disabled]="cargando || !mostrandoResultados">
+            Exportar a Excel
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="mostrandoResultados" class="resultados-card">
+        <h3>Resultados</h3>
+        <div class="tabla-container">
+          <table class="tabla-reporte">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Total Compras</th>
+                <th>Peso Total (kg)</th>
+                <th>Monto Total</th>
+                <th>Precio Promedio/kg</th>
+                <th>Peso Promedio Compra</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reporteComprasProducto">
+                <td><strong>{{ item.productoNombre }}</strong></td>
+                <td class="text-center">{{ item.totalCompras }}</td>
+                <td class="text-right">{{ item.pesoTotalKg | number:'1.1-1' }}</td>
+                <td class="text-right">{{ item.montoTotal | formatoMoneda }}</td>
+                <td class="text-right">{{ item.precioPromedioPorKg | formatoMoneda }}</td>
+                <td class="text-right">{{ item.pesoPromedioCompra | number:'1.1-1' }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="totales-row">
+                <td><strong>TOTALES</strong></td>
+                <td class="text-center"><strong>{{ totales.totalRegistros }}</strong></td>
+                <td class="text-right"><strong>{{ totales.totalKg | number:'1.1-1' }} kg</strong></td>
+                <td class="text-right"><strong>{{ totales.totalMonto | formatoMoneda }}</strong></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Resumen por Zonas -->
+    <div *ngIf="tabActiva === 'zonas'" class="tab-panel">
+      <div class="filtros-card">
+        <h3>Filtros</h3>
+        <div class="filtros-grid">
+          <div class="filtro-item">
+            <label>Fecha Inicio *</label>
+            <input type="date" [(ngModel)]="filtros.fechaInicio" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Fecha Fin *</label>
+            <input type="date" [(ngModel)]="filtros.fechaFin" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Zona (Opcional)</label>
+            <select [(ngModel)]="filtros.zonaId" class="form-control">
+              <option [value]="undefined">Todas</option>
+              <option *ngFor="let zona of zonas" [value]="zona.id">
+                {{ zona.nombre }}
+              </option>
+            </select>
+          </div>
+          <div class="filtro-item">
+            <label>Producto (Opcional)</label>
+            <select [(ngModel)]="filtros.productoId" class="form-control">
+              <option [value]="undefined">Todos</option>
+              <option *ngFor="let producto of productos" [value]="producto.id">
+                {{ producto.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="filtros-acciones">
+          <button class="btn btn-primary" (click)="generarReporte()" [disabled]="cargando">
+            {{ cargando ? 'Generando...' : 'Generar Reporte' }}
+          </button>
+          <button class="btn btn-success" (click)="exportarExcel()" [disabled]="cargando || !mostrandoResultados">
+            Exportar a Excel
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="mostrandoResultados" class="resultados-card">
+        <h3>Resultados</h3>
+        <div class="tabla-container">
+          <table class="tabla-reporte">
+            <thead>
+              <tr>
+                <th>Zona</th>
+                <th>Total Proveedores</th>
+                <th>Total Compras</th>
+                <th>Peso Total (kg)</th>
+                <th>Monto Total</th>
+                <th>Promedio Compras/Proveedor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reporteZonas">
+                <td><strong>{{ item.zonaNombre }}</strong></td>
+                <td class="text-center">{{ item.totalProveedores }}</td>
+                <td class="text-center">{{ item.totalCompras }}</td>
+                <td class="text-right">{{ item.pesoTotalKg | number:'1.1-1' }}</td>
+                <td class="text-right">{{ item.montoTotal | formatoMoneda }}</td>
+                <td class="text-right">{{ item.promedioComprasPorProveedor | number:'1.1-1' }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="totales-row">
+                <td><strong>TOTALES</strong></td>
+                <td class="text-center"><strong>{{ totales.totalRegistros }}</strong></td>
+                <td></td>
+                <td class="text-right"><strong>{{ totales.totalKg | number:'1.1-1' }} kg</strong></td>
+                <td class="text-right"><strong>{{ totales.totalMonto | formatoMoneda }}</strong></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Movimientos de Caja -->
+    <div *ngIf="tabActiva === 'movimientos-caja'" class="tab-panel">
+      <div class="filtros-card">
+        <h3>Filtros</h3>
+        <div class="filtros-grid">
+          <div class="filtro-item">
+            <label>Fecha Inicio *</label>
+            <input type="date" [(ngModel)]="filtros.fechaInicio" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Fecha Fin *</label>
+            <input type="date" [(ngModel)]="filtros.fechaFin" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>
+              <input type="checkbox" [(ngModel)]="agruparPorTipo">
+              Agrupar por tipo de movimiento
+            </label>
+          </div>
+        </div>
+        <div class="filtros-acciones">
+          <button class="btn btn-primary" (click)="generarReporte()" [disabled]="cargando">
+            {{ cargando ? 'Generando...' : 'Generar Reporte' }}
+          </button>
+          <button class="btn btn-success" (click)="exportarExcel()" [disabled]="cargando || !mostrandoResultados">
+            Exportar a Excel
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="mostrandoResultados" class="resultados-card">
+        <h3>Resultados</h3>
+
+        <!-- Vista sin agrupar -->
+        <div *ngIf="!agruparPorTipo" class="tabla-container">
+          <table class="tabla-reporte">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo Movimiento</th>
+                <th>Concepto</th>
+                <th>Ingreso</th>
+                <th>Egreso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reporteMovimientosCaja">
+                <td>{{ item.fecha | formatoFecha }}</td>
+                <td>
+                  <span class="badge" [class.badge-ingreso]="item.tipoOperacion === TipoOperacion.Ingreso"
+                        [class.badge-egreso]="item.tipoOperacion === TipoOperacion.Egreso">
+                    {{ obtenerNombreTipoMovimiento(item.tipoMovimiento) }}
+                  </span>
+                </td>
+                <td>
+                  {{ item.concepto }}
+                  <span *ngIf="item.esAjustePosterior" class="badge badge-warning">Ajuste Posterior</span>
+                </td>
+                <td class="text-right ingreso">
+                  {{ item.tipoOperacion === TipoOperacion.Ingreso ? (item.monto | formatoMoneda) : '-' }}
+                </td>
+                <td class="text-right egreso">
+                  {{ item.tipoOperacion === TipoOperacion.Egreso ? (item.monto | formatoMoneda) : '-' }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="totales-row">
+                <td colspan="3"><strong>TOTALES</strong></td>
+                <td class="text-right ingreso"><strong>{{ totales.totalIngresos | formatoMoneda }}</strong></td>
+                <td class="text-right egreso"><strong>{{ totales.totalEgresos | formatoMoneda }}</strong></td>
+              </tr>
+              <tr class="totales-row">
+                <td colspan="3"><strong>DIFERENCIA NETA</strong></td>
+                <td colspan="2" class="text-right"
+                    [class.ingreso]="totales.diferenciaNeta! >= 0"
+                    [class.egreso]="totales.diferenciaNeta! < 0">
+                  <strong>{{ totales.diferenciaNeta | formatoMoneda }}</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Vista agrupada -->
+        <div *ngIf="agruparPorTipo">
+          <div *ngFor="let grupo of reporteMovimientosCajaAgrupado" class="grupo-movimientos">
+            <h4 class="grupo-titulo">{{ grupo.tipo }}</h4>
+            <div class="tabla-container">
+              <table class="tabla-reporte">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Concepto</th>
+                    <th>Ingreso</th>
+                    <th>Egreso</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of grupo.movimientos">
+                    <td>{{ item.fecha | formatoFecha }}</td>
+                    <td>
+                      {{ item.concepto }}
+                      <span *ngIf="item.esAjustePosterior" class="badge badge-warning">Ajuste Posterior</span>
+                    </td>
+                    <td class="text-right ingreso">
+                      {{ item.tipoOperacion === TipoOperacion.Ingreso ? (item.monto | formatoMoneda) : '-' }}
+                    </td>
+                    <td class="text-right egreso">
+                      {{ item.tipoOperacion === TipoOperacion.Egreso ? (item.monto | formatoMoneda) : '-' }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="subtotales-row">
+                    <td colspan="2"><strong>Subtotales {{ grupo.tipo }}</strong></td>
+                    <td class="text-right ingreso"><strong>{{ grupo.totalIngresos | formatoMoneda }}</strong></td>
+                    <td class="text-right egreso"><strong>{{ grupo.totalEgresos | formatoMoneda }}</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Totales generales cuando está agrupado -->
+          <div class="totales-generales">
+            <h4>Totales Generales</h4>
+            <div class="totales-grid">
+              <div class="total-item ingreso">
+                <span class="label">Total Ingresos:</span>
+                <span class="valor">{{ totales.totalIngresos | formatoMoneda }}</span>
+              </div>
+              <div class="total-item egreso">
+                <span class="label">Total Egresos:</span>
+                <span class="valor">{{ totales.totalEgresos | formatoMoneda }}</span>
+              </div>
+              <div class="total-item"
+                   [class.ingreso]="totales.diferenciaNeta! >= 0"
+                   [class.egreso]="totales.diferenciaNeta! < 0">
+                <span class="label">Diferencia Neta:</span>
+                <span class="valor"><strong>{{ totales.diferenciaNeta | formatoMoneda }}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Ventas -->
+    <div *ngIf="tabActiva === 'ventas'" class="tab-panel">
+      <div class="filtros-card">
+        <h3>Filtros</h3>
+        <div class="filtros-grid">
+          <div class="filtro-item">
+            <label>Fecha Inicio *</label>
+            <input type="date" [(ngModel)]="filtros.fechaInicio" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Fecha Fin *</label>
+            <input type="date" [(ngModel)]="filtros.fechaFin" class="form-control">
+          </div>
+          <div class="filtro-item">
+            <label>Producto (Opcional)</label>
+            <select [(ngModel)]="filtros.productoId" class="form-control">
+              <option [value]="undefined">Todos</option>
+              <option *ngFor="let producto of productos" [value]="producto.id">
+                {{ producto.nombre }}
+              </option>
+            </select>
+          </div>
+          <div class="filtro-item">
+            <label>Cliente Comprador (Opcional)</label>
+            <select [(ngModel)]="filtros.clienteId" class="form-control">
+              <option [value]="undefined">Todos</option>
+              <option *ngFor="let cliente of clientesCompradores" [value]="cliente.id">
+                {{ cliente.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="filtros-acciones">
+          <button class="btn btn-primary" (click)="generarReporte()" [disabled]="cargando">
+            {{ cargando ? 'Generando...' : 'Generar Reporte' }}
+          </button>
+          <button class="btn btn-success" (click)="exportarExcel()" [disabled]="cargando || !mostrandoResultados">
+            Exportar a Excel
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="mostrandoResultados" class="resultados-card">
+        <h3>Resultados</h3>
+        <div class="tabla-container">
+          <table class="tabla-reporte">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Producto</th>
+                <th>Peso Neto (kg)</th>
+                <th>Precio/kg</th>
+                <th>Total</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reporteVentas">
+                <td>{{ item.fechaVenta | formatoFecha }}</td>
+                <td>{{ item.clienteNombre }}</td>
+                <td>{{ item.productoNombre }}</td>
+                <td class="text-right">{{ item.pesoNeto | number:'1.1-1' }}</td>
+                <td class="text-right">{{ item.precioPorKg | formatoMoneda }}</td>
+                <td class="text-right">{{ item.montoTotal | formatoMoneda }}</td>
+                <td class="text-center">
+                  <span *ngIf="item.editada" class="badge badge-warning">Editada</span>
+                  <span *ngIf="!item.editada" class="badge badge-success">Original</span>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="totales-row">
+                <td colspan="3"><strong>TOTALES</strong></td>
+                <td class="text-right"><strong>{{ totales.totalKg | number:'1.1-1' }} kg</strong></td>
+                <td></td>
+                <td class="text-right"><strong>{{ totales.totalMonto | formatoMoneda }}</strong></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mensaje cuando no hay resultados -->
+  <div *ngIf="!mostrandoResultados && !cargando" class="mensaje-sin-resultados">
+    <p>Seleccione los filtros y haga clic en "Generar Reporte" para ver los resultados.</p>
+  </div>
+
+  <!-- Spinner de carga -->
+  <div *ngIf="cargando" class="spinner-container">
+    <div class="spinner"></div>
+    <p>Generando reporte...</p>
+  </div>
+</div>

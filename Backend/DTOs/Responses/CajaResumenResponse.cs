@@ -20,4 +20,14 @@ public class CajaResumenResponse
     public decimal TotalIngresos { get; set; }
     public decimal TotalEgresos { get; set; }
     public decimal SaldoActual { get; set; }
+
+    // Desglose de movimientos
+    public decimal TotalInyecciones { get; set; }
+    public decimal TotalIngresosSinInyecciones { get; set; }
+    public decimal TotalRetiros { get; set; }
+    public decimal TotalGastos { get; set; }
+    public decimal TotalCompras { get; set; }
+    public decimal TotalVentas { get; set; }
+    public decimal TotalPrestamos { get; set; }
+    public decimal TotalAbonos { get; set; }
 }

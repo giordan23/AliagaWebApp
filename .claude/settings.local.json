@@ -16,7 +16,9 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(npm run build:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(del Backendmiapp.db)",
+      "Bash(del miapp.db)"
     ]
   }
 }

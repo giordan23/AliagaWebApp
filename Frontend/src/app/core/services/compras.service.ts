@@ -3,6 +3,22 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface EditarCompraRequest {
+  clienteProveedorId: number;
+  detalles: DetalleCompraEditarRequest[];
+}
+
+export interface DetalleCompraEditarRequest {
+  id: number;
+  productoId: number;
+  nivelSecado: string;
+  calidad: string;
+  tipoPesado: number;
+  pesoBruto: number;
+  descuentoKg: number;
+  precioPorKg: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -15,7 +31,7 @@ export class ComprasService {
     return this.http.post(this.apiUrl, compra);
   }
 
-  editarCompra(id: number, compra: any): Observable<any> {
+  editarCompra(id: number, compra: EditarCompraRequest): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}`, compra);
   }
 

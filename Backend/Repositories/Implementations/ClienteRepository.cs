@@ -38,9 +38,10 @@ public class ClienteRepository : IClienteRepository
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
+            var searchTermUpper = searchTerm.ToUpper();
             query = query.Where(c =>
-                c.DNI.Contains(searchTerm) ||
-                c.NombreCompleto.Contains(searchTerm));
+                c.DNI.ToUpper().Contains(searchTermUpper) ||
+                c.NombreCompleto.ToUpper().Contains(searchTermUpper));
         }
 
         if (zonaId.HasValue)
@@ -63,9 +64,10 @@ public class ClienteRepository : IClienteRepository
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
+            var searchTermUpper = searchTerm.ToUpper();
             query = query.Where(c =>
-                c.DNI.Contains(searchTerm) ||
-                c.NombreCompleto.Contains(searchTerm));
+                c.DNI.ToUpper().Contains(searchTermUpper) ||
+                c.NombreCompleto.ToUpper().Contains(searchTermUpper));
         }
 
         if (zonaId.HasValue)

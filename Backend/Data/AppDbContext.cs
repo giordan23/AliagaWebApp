@@ -218,7 +218,7 @@ public class AppDbContext : DbContext
             {
                 Id = 1,
                 DNI = "00000000",
-                NombreCompleto = "Anónimo",
+                NombreCompleto = "ANÓNIMO",
                 EsAnonimo = true,
                 SaldoPrestamo = 0,
                 FechaCreacion = new DateTime(2025, 1, 1),
@@ -244,7 +244,7 @@ public class AppDbContext : DbContext
                 Nombre = "Cacao",
                 PrecioSugeridoPorKg = 7.00m,
                 NivelesSecado = "[\"Mote-baba\",\"Húmedo\",\"Estándar\",\"Seco\"]",
-                Calidades = "[\"Normal\",\"Alto\"]",
+                Calidades = "[\"Bajo\",\"Normal\",\"Alto\"]",
                 PermiteValdeo = true,
                 FechaModificacion = new DateTime(2025, 1, 1)
             },

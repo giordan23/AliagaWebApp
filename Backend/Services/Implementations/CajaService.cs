@@ -196,6 +196,8 @@ public class CajaService : ICajaService
             Movimientos = movimientos.Select(m => new MovimientoCajaResponse
             {
                 Id = m.Id,
+                CajaId = m.CajaId,
+                FechaCaja = caja.Fecha,
                 TipoMovimiento = m.TipoMovimiento,
                 ReferenciaId = m.ReferenciaId,
                 Concepto = m.Concepto,
@@ -261,7 +263,7 @@ public class CajaService : ICajaService
         {
             CajaId = cajaAbierta.Id,
             TipoMovimiento = request.TipoMovimiento,
-            Concepto = request.Descripcion ?? GetConceptoDefault(request.TipoMovimiento),
+            Concepto = (request.Descripcion ?? GetConceptoDefault(request.TipoMovimiento)).ToUpper(),
             Monto = request.Monto,
             TipoOperacion = tipoOperacion,
             FechaMovimiento = DateTime.Now,
@@ -274,6 +276,8 @@ public class CajaService : ICajaService
         return new MovimientoCajaResponse
         {
             Id = movimiento.Id,
+            CajaId = movimiento.CajaId,
+            FechaCaja = cajaAbierta.Fecha,
             TipoMovimiento = movimiento.TipoMovimiento,
             ReferenciaId = movimiento.ReferenciaId,
             Concepto = movimiento.Concepto,
@@ -378,7 +382,15 @@ public class CajaService : ICajaService
             SaldoActual = CalculosHelper.CalcularSaldoEsperado(
                 caja.MontoInicial,
                 totales.TotalIngresos,
-                totales.TotalEgresos)
+                totales.TotalEgresos),
+            TotalInyecciones = totales.TotalInyecciones,
+            TotalIngresosSinInyecciones = totales.TotalAbonos + totales.TotalVentas,
+            TotalRetiros = totales.TotalRetiros,
+            TotalGastos = totales.TotalGastos,
+            TotalCompras = totales.TotalCompras,
+            TotalVentas = totales.TotalVentas,
+            TotalPrestamos = totales.TotalPrestamos,
+            TotalAbonos = totales.TotalAbonos
         };
     }
 

@@ -9,10 +9,12 @@ namespace Backend.Services.Implementations;
 public class ClienteService : IClienteService
 {
     private readonly IClienteRepository _clienteRepository;
+    private readonly IZonaRepository _zonaRepository;
 
-    public ClienteService(IClienteRepository clienteRepository)
+    public ClienteService(IClienteRepository clienteRepository, IZonaRepository zonaRepository)
     {
         _clienteRepository = clienteRepository;
+        _zonaRepository = zonaRepository;
     }
 
     // Clientes Proveedores
@@ -61,14 +63,40 @@ public class ClienteService : IClienteService
             throw new InvalidOperationException("El cliente anónimo ya existe en el sistema");
         }
 
+        // Si se proporciona ZonaNombre en lugar de ZonaId, crear o buscar la zona
+        int? zonaId = request.ZonaId;
+        if (!zonaId.HasValue && !string.IsNullOrWhiteSpace(request.ZonaNombre))
+        {
+            var zonaNombre = request.ZonaNombre.ToUpper();
+
+            // Buscar si la zona ya existe
+            var zonaExistente = await _zonaRepository.GetByNombreAsync(zonaNombre);
+            if (zonaExistente != null)
+            {
+                zonaId = zonaExistente.Id;
+            }
+            else
+            {
+                // Crear nueva zona
+                var nuevaZona = new Zona
+                {
+                    Nombre = zonaNombre,
+                    FechaCreacion = DateTime.Now,
+                    FechaModificacion = DateTime.Now
+                };
+                var zonaCreada = await _zonaRepository.AddAsync(nuevaZona);
+                zonaId = zonaCreada.Id;
+            }
+        }
+
         var cliente = new ClienteProveedor
         {
             DNI = request.DNI,
-            NombreCompleto = request.NombreCompleto,
+            NombreCompleto = request.NombreCompleto.ToUpper(),
             Telefono = request.Telefono,
             Direccion = request.Direccion,
             FechaNacimiento = request.FechaNacimiento,
-            ZonaId = request.ZonaId,
+            ZonaId = zonaId,
             SaldoPrestamo = 0,
             EsAnonimo = false,
             FechaCreacion = DateTime.Now,
@@ -95,11 +123,37 @@ public class ClienteService : IClienteService
             throw new InvalidOperationException("El cliente anónimo no se puede editar");
         }
 
-        cliente.NombreCompleto = request.NombreCompleto;
+        // Si se proporciona ZonaNombre en lugar de ZonaId, crear o buscar la zona
+        int? zonaId = request.ZonaId;
+        if (!zonaId.HasValue && !string.IsNullOrWhiteSpace(request.ZonaNombre))
+        {
+            var zonaNombre = request.ZonaNombre.ToUpper();
+
+            // Buscar si la zona ya existe
+            var zonaExistente = await _zonaRepository.GetByNombreAsync(zonaNombre);
+            if (zonaExistente != null)
+            {
+                zonaId = zonaExistente.Id;
+            }
+            else
+            {
+                // Crear nueva zona
+                var nuevaZona = new Zona
+                {
+                    Nombre = zonaNombre,
+                    FechaCreacion = DateTime.Now,
+                    FechaModificacion = DateTime.Now
+                };
+                var zonaCreada = await _zonaRepository.AddAsync(nuevaZona);
+                zonaId = zonaCreada.Id;
+            }
+        }
+
+        cliente.NombreCompleto = request.NombreCompleto.ToUpper();
         cliente.Telefono = request.Telefono;
         cliente.Direccion = request.Direccion;
         cliente.FechaNacimiento = request.FechaNacimiento;
-        cliente.ZonaId = request.ZonaId;
+        cliente.ZonaId = zonaId;
 
         await _clienteRepository.UpdateProveedorAsync(cliente);
 
